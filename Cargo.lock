@@ -1,0 +1,11 @@
+[root]
+name = "brdgme-cmd"
+version = "0.1.0"
+dependencies = [
+ "brdgme-color 0.1.0",
+]
+
+[[package]]
+name = "brdgme-color"
+version = "0.1.0"
+
