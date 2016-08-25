@@ -4,4 +4,4 @@ version = "0.1.0"
 authors = ["beefsack"]
 
 [dependencies]
-brdgme-color = { path = "../color" }
+brdgme-markup = { path = "../markup" }
