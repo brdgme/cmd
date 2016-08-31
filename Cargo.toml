@@ -5,3 +5,5 @@ authors = ["beefsack"]
 
 [dependencies]
 brdgme-markup = { path = "../markup" }
+brdgme-game = { path = "../game" }
+brdgme-color = { path = "../color" }
