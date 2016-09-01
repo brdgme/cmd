@@ -3,6 +3,7 @@ extern crate brdgme_markup;
 extern crate brdgme_color;
 
 use std::io;
+use std::fmt::Debug;
 
 use brdgme_game::{Gamer, Renderer, Commander, Log, GameError};
 use brdgme_markup::ansi;
@@ -10,7 +11,7 @@ use brdgme_markup::ast::Node as N;
 use brdgme_color::Style;
 
 pub fn repl<T>(game: &mut T)
-    where T: Gamer + Renderer + Commander
+    where T: Gamer + Renderer + Commander + Debug
 {
     print!("{}", Style::default().ansi());
     let mut players: Vec<String> = vec![];
@@ -38,10 +39,16 @@ pub fn repl<T>(game: &mut T)
         let mut input = String::new();
         io::stdin().read_line(&mut input).unwrap();
         input = input.trim().to_owned();
-        match game.command(current_player, &input, &players) {
-            Ok(l) => output_logs(l, &players),
-            Err(GameError::InvalidInput(desc)) => output(desc),
-            Err(e) => panic!(e),
+        match input.as_ref() {
+            ":dump" | ":d" => output(format!("{:#?}", game)),
+            ":quit" | ":q" => return,
+            _ => {
+                match game.command(current_player, &input, &players) {
+                    Ok(l) => output_logs(l, &players),
+                    Err(GameError::InvalidInput(desc)) => output(desc),
+                    Err(e) => panic!(e),
+                }
+            }
         }
     }
 }
