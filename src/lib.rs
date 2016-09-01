@@ -10,9 +10,11 @@ use brdgme_markup::ansi;
 use brdgme_markup::ast::Node as N;
 use brdgme_color::Style;
 
-pub fn repl<T>(game: &mut T)
-    where T: Gamer + Renderer + Commander + Debug
+pub fn repl<T>(original_game: &T)
+    where T: Gamer + Renderer + Commander + Debug + Clone
 {
+    let mut game = original_game.clone();
+    let mut undo_stack: Vec<T> = vec![game.clone()];
     print!("{}", Style::default().ansi());
     let mut players: Vec<String> = vec![];
     loop {
@@ -34,19 +36,36 @@ pub fn repl<T>(game: &mut T)
                         ansi(&game.render(Some(current_player)).unwrap(), &players).unwrap()));
         let input = prompt(&format!("Enter command for {}",
                                     ansi(&vec![N::Player(current_player)], &players).unwrap()));
+        let previous = game.clone();
         match input.as_ref() {
             ":dump" | ":d" => output(&format!("{:#?}", game)),
+            ":undo" | ":u" => {
+                if let Some(u) = undo_stack.pop() {
+                    game = u;
+                } else {
+                    output(&ansi(&vec![N::Bold(vec![N::Fg(brdgme_color::RED,
+                                                          vec![
+                                                              N::Text("No undos available".to_string()),
+                                                          ])])],
+                                 &players)
+                           .unwrap());
+                }
+            },
             ":quit" | ":q" => return,
             _ => {
                 match game.command(current_player, &input, &players) {
-                    Ok(l) => output_logs(l, &players),
+                    Ok(l) => {
+                        undo_stack.push(previous);
+                        output_logs(l, &players);
+                    }
                     Err(GameError::InvalidInput(desc)) => {
+                        game = previous;
                         output(&ansi(&vec![N::Bold(vec![N::Fg(brdgme_color::RED,
                                                               vec![
                             N::Text(desc),
                                                  ])])],
                                      &players)
-                            .unwrap())
+                            .unwrap());
                     }
                     Err(e) => panic!(e),
                 }
