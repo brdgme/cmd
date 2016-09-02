@@ -27,7 +27,7 @@ pub fn repl<T>(original_game: &T)
     output_logs(game.start(players.len()).unwrap(), &players);
     while !game.is_finished() {
         let turn = game.whose_turn();
-        if turn.len() == 0 {
+        if turn.is_empty() {
             output("no player's turn, exiting");
             return;
         }
@@ -35,7 +35,7 @@ pub fn repl<T>(original_game: &T)
         output(&format!("\n{}\n",
                         ansi(&game.render(Some(current_player)).unwrap(), &players).unwrap()));
         let input = prompt(&format!("Enter command for {}",
-                                    ansi(&vec![N::Player(current_player)], &players).unwrap()));
+                                    ansi(&[N::Player(current_player)], &players).unwrap()));
         let previous = game.clone();
         match input.as_ref() {
             ":dump" | ":d" => output(&format!("{:#?}", game)),
@@ -43,7 +43,7 @@ pub fn repl<T>(original_game: &T)
                 if let Some(u) = undo_stack.pop() {
                     game = u;
                 } else {
-                    output(&ansi(&vec![N::Bold(vec![N::Fg(brdgme_color::RED,
+                    output(&ansi(&[N::Bold(vec![N::Fg(brdgme_color::RED,
                                                           vec![
                                                               N::Text("No undos available".to_string()),
                                                           ])])],
@@ -60,7 +60,7 @@ pub fn repl<T>(original_game: &T)
                     }
                     Err(GameError::InvalidInput(desc)) => {
                         game = previous;
-                        output(&ansi(&vec![N::Bold(vec![N::Fg(brdgme_color::RED,
+                        output(&ansi(&[N::Bold(vec![N::Fg(brdgme_color::RED,
                                                               vec![
                             N::Text(desc),
                                                  ])])],
@@ -74,10 +74,10 @@ pub fn repl<T>(original_game: &T)
     }
 }
 
-fn output_logs(logs: Vec<Log>, players: &Vec<String>) {
+fn output_logs(logs: Vec<Log>, players: &[String]) {
     for l in logs {
         output(&format!("{} - {}",
-                        ansi(&vec![N::Bold(vec![N::Text(format!("{}", l.at.asctime()))])],
+                        ansi(&[N::Bold(vec![N::Text(format!("{}", l.at.asctime()))])],
                              &players)
                             .unwrap(),
                         ansi(&l.content, players).unwrap()));
