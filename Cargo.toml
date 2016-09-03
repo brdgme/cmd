@@ -7,3 +7,6 @@ authors = ["beefsack"]
 brdgme-markup = { path = "../markup" }
 brdgme-game = { path = "../game" }
 brdgme-color = { path = "../color" }
+serde = "^0.8.6"
+serde_yaml = "^0.4.0"
+serde_json = "^0.8.1"

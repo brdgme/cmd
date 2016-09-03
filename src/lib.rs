@@ -1,6 +1,12 @@
+extern crate serde;
+extern crate serde_json;
+extern crate serde_yaml;
+
 extern crate brdgme_game;
 extern crate brdgme_markup;
 extern crate brdgme_color;
+
+use serde::Serialize;
 
 use std::io::{self, Write};
 use std::fmt::Debug;
@@ -11,7 +17,7 @@ use brdgme_markup::ast::Node as N;
 use brdgme_color::Style;
 
 pub fn repl<T>(original_game: &T)
-    where T: Gamer + Renderer + Commander + Debug + Clone
+    where T: Gamer + Renderer + Commander + Debug + Clone + Serialize
 {
     let mut game = original_game.clone();
     let mut undo_stack: Vec<T> = vec![game.clone()];
@@ -39,6 +45,8 @@ pub fn repl<T>(original_game: &T)
         let previous = game.clone();
         match input.as_ref() {
             ":dump" | ":d" => output(&format!("{:#?}", game)),
+            ":yaml" => output(&serde_yaml::ser::to_string(&game).unwrap()),
+            ":json" => output(&serde_json::ser::to_string_pretty(&game).unwrap()),
             ":undo" | ":u" => {
                 if let Some(u) = undo_stack.pop() {
                     game = u;
@@ -54,7 +62,7 @@ pub fn repl<T>(original_game: &T)
             ":quit" | ":q" => return,
             _ => {
                 match game.command(current_player, &input, &players) {
-                    Ok(l) => {
+                    Ok((l, _)) => {
                         undo_stack.push(previous);
                         output_logs(l, &players);
                     }
