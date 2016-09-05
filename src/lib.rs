@@ -10,6 +10,7 @@ use serde::Serialize;
 
 use std::io::{self, Write};
 use std::fmt::Debug;
+use std::borrow::Cow;
 
 use brdgme_game::{Gamer, Renderer, Commander, Log, GameError};
 use brdgme_markup::ansi;
@@ -24,7 +25,7 @@ pub fn repl<T>(original_game: &T)
     print!("{}", Style::default().ansi());
     let mut players: Vec<String> = vec![];
     loop {
-        let player = prompt(&format!("Enter player {} (or blank to finish)", players.len() + 1));
+        let player = prompt(format!("Enter player {} (or blank to finish)", players.len() + 1));
         if player == "" {
             break;
         }
@@ -38,27 +39,27 @@ pub fn repl<T>(original_game: &T)
             return;
         }
         let current_player = turn[0];
-        output(&format!("\n{}\n",
-                        ansi(&game.render(Some(current_player)).unwrap(), &players).unwrap()));
-        let input = prompt(&format!("Enter command for {}",
-                                    ansi(&[N::Player(current_player)], &players).unwrap()));
+        output(format!("\n{}\n",
+                       ansi(&game.render(Some(current_player)).unwrap(), &players).unwrap()));
+        let input = prompt(format!("Enter command for {}",
+                                   ansi(&[N::Player(current_player)], &players).unwrap()));
         let previous = game.clone();
         match input.as_ref() {
-            ":dump" | ":d" => output(&format!("{:#?}", game)),
-            ":yaml" => output(&serde_yaml::ser::to_string(&game).unwrap()),
-            ":json" => output(&serde_json::ser::to_string_pretty(&game).unwrap()),
+            ":dump" | ":d" => output(format!("{:#?}", game)),
+            ":yaml" => output(serde_yaml::ser::to_string(&game).unwrap()),
+            ":json" => output(serde_json::ser::to_string_pretty(&game).unwrap()),
             ":undo" | ":u" => {
                 if let Some(u) = undo_stack.pop() {
                     game = u;
                 } else {
-                    output(&ansi(&[N::Bold(vec![N::Fg(brdgme_color::RED,
-                                                          vec![
-                                                              N::Text("No undos available".to_string()),
+                    output(ansi(&[N::Bold(vec![N::Fg(brdgme_color::RED,
+                                                     vec![
+                                                              N::text("No undos available"),
                                                           ])])],
-                                 &players)
-                           .unwrap());
+                                &players)
+                        .unwrap());
                 }
-            },
+            }
             ":quit" | ":q" => return,
             _ => {
                 match game.command(current_player, &input, &players) {
@@ -67,12 +68,12 @@ pub fn repl<T>(original_game: &T)
                         output_logs(l, &players);
                     }
                     Err(GameError::InvalidInput(desc)) => {
-                        game = previous;
-                        output(&ansi(&[N::Bold(vec![N::Fg(brdgme_color::RED,
-                                                              vec![
-                            N::Text(desc),
+                        // game = previous;
+                        output(ansi(&[N::Bold(vec![N::Fg(brdgme_color::RED,
+                                                         vec![
+                            N::text(desc),
                                                  ])])],
-                                     &players)
+                                    &players)
                             .unwrap());
                     }
                     Err(e) => panic!(e),
@@ -84,24 +85,29 @@ pub fn repl<T>(original_game: &T)
 
 fn output_logs(logs: Vec<Log>, players: &[String]) {
     for l in logs {
-        output(&format!("{} - {}",
-                        ansi(&[N::Bold(vec![N::Text(format!("{}", l.at.asctime()))])],
-                             &players)
-                            .unwrap(),
-                        ansi(&l.content, players).unwrap()));
+        output(format!("{} - {}",
+                       ansi(&[N::Bold(vec![N::text(format!("{}", l.at.asctime()))])],
+                            &players)
+                           .unwrap(),
+                       ansi(&l.content, players).unwrap()));
     }
 }
 
-fn output(s: &str) {
+fn output<'a, T>(s: T)
+    where T: Into<Cow<'a, str>>
+{
     println!("{}",
-             s.split("\n")
+             s.into()
+                 .split("\n")
                  .map(|l| format!("{}\x1b[K", l))
                  .collect::<Vec<String>>()
                  .join("\n"));
 }
 
-fn prompt(s: &str) -> String {
-    print!("{}: \x1b[K", s);
+fn prompt<'a, T>(s: T) -> String
+    where T: Into<Cow<'a, str>>
+{
+    print!("{}: \x1b[K", s.into());
     io::stdout().flush().unwrap();
     let mut input = String::new();
     io::stdin().read_line(&mut input).unwrap();
