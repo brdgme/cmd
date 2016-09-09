@@ -12,13 +12,13 @@ use std::io::{self, Write};
 use std::fmt::Debug;
 use std::borrow::Cow;
 
-use brdgme_game::{Gamer, Renderer, Commander, Log, GameError};
+use brdgme_game::{Gamer, Renderer, Log, GameError};
 use brdgme_markup::ansi;
 use brdgme_markup::ast::Node as N;
 use brdgme_color::Style;
 
 pub fn repl<T>(original_game: &T)
-    where T: Gamer + Renderer + Commander + Debug + Clone + Serialize
+    where T: Gamer + Debug + Clone + Serialize
 {
     let mut game = original_game.clone();
     let mut undo_stack: Vec<T> = vec![game.clone()];
@@ -40,7 +40,7 @@ pub fn repl<T>(original_game: &T)
         }
         let current_player = turn[0];
         output(format!("\n{}\n",
-                       ansi(&game.render(Some(current_player)).unwrap(), &players).unwrap()));
+                       ansi(&game.player_state(Some(current_player)).render(), &players).unwrap()));
         let input = prompt(format!("Enter command for {}",
                                    ansi(&[N::Player(current_player)], &players).unwrap()));
         let previous = game.clone();
