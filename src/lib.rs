@@ -1,3 +1,5 @@
+#![feature(slice_patterns)]
+
 extern crate serde;
 extern crate serde_json;
 extern crate serde_yaml;
@@ -81,6 +83,20 @@ pub fn repl<T>(original_game: &T)
             }
         }
     }
+    match game.winners().as_slice() {
+        &[] => output("The game is over, there are no winners"),
+        w => {
+            output(format!("The game is over, won by {}",
+                           w.iter()
+                               .filter(|w| **w < players.len())
+                               .map(|w| players[*w].to_owned())
+                               .collect::<Vec<String>>()
+                               .join(", ")))
+        }
+
+    }
+    output(format!("\n{}\n",
+                   ansi(&game.player_state(None).render(), &players).unwrap()));
 }
 
 fn output_logs(logs: Vec<Log>, players: &[String]) {
