@@ -70,7 +70,7 @@ pub fn repl<T>(original_game: &T)
                         output_logs(l, &players);
                     }
                     Err(GameError::InvalidInput(desc)) => {
-                        // game = previous;
+                        game = previous;
                         output(ansi(&[N::Bold(vec![N::Fg(brdgme_color::RED,
                                                          vec![
                             N::text(desc),
