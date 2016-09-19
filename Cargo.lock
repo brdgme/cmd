@@ -19,6 +19,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "ascii"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "brdgme-color"
 version = "0.1.0"
 dependencies = [
@@ -31,6 +36,7 @@ name = "brdgme-game"
 version = "0.1.0"
 dependencies = [
  "brdgme-markup 0.1.0",
+ "combine 2.0.0-beta3 (git+https://github.com/Marwes/combine.git)",
  "serde 0.8.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -40,6 +46,14 @@ name = "brdgme-markup"
 version = "0.1.0"
 dependencies = [
  "brdgme-color 0.1.0",
+]
+
+[[package]]
+name = "combine"
+version = "2.0.0-beta3"
+source = "git+https://github.com/Marwes/combine.git#608cdde353c2dd48f66268be2a91489faedfffde"
+dependencies = [
+ "ascii 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -175,6 +189,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [metadata]
 "checksum aho-corasick 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)" = "ca972c2ea5f742bfce5687b9aef75506a764f61d37f8f649047846a9686ddb66"
+"checksum ascii 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)" = "3ae7d751998c189c1d4468cf0a39bb2eae052a9c58d50ebb3b9591ee3813ad50"
+"checksum combine 2.0.0-beta3 (git+https://github.com/Marwes/combine.git)" = "<none>"
 "checksum dtoa 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "0dd841b58510c9618291ffa448da2e4e0f699d984d436122372f446dae62263d"
 "checksum itoa 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "ae3088ea4baeceb0284ee9eea42f591226e6beaecf65373e41b38d95a1b8e7a1"
 "checksum kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "7507624b29483431c0ba2d82aece8ca6cdba9382bff4ddd0f7490560c056098d"
