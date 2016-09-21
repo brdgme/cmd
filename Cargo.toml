@@ -1,7 +1,7 @@
 [package]
 name = "brdgme-cmd"
 version = "0.1.0"
-authors = ["beefsack"]
+authors = ["Michael Alexander <beefsack@gmail.com>"]
 
 [dependencies]
 brdgme-markup = { path = "../markup" }
