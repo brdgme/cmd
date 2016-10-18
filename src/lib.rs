@@ -42,7 +42,7 @@ pub fn repl<T>(original_game: &T)
         }
         let current_player = turn[0];
         output(format!("\n{}\n",
-                       ansi(&game.player_state(Some(current_player)).render(), &players).unwrap()));
+                       ansi(&game.pub_state(Some(current_player)).render(), &players).unwrap()));
         let input = prompt(format!("Enter command for {}",
                                    ansi(&[N::Player(current_player)], &players).unwrap()));
         let previous = game.clone();
@@ -96,7 +96,7 @@ pub fn repl<T>(original_game: &T)
 
     }
     output(format!("\n{}\n",
-                   ansi(&game.player_state(None).render(), &players).unwrap()));
+                   ansi(&game.pub_state(None).render(), &players).unwrap()));
 }
 
 fn output_logs(logs: Vec<Log>, players: &[String]) {
