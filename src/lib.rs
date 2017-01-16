@@ -55,9 +55,7 @@ pub fn repl<T>(original_game: &T)
                     game = u;
                 } else {
                     output(ansi(&[N::Bold(vec![N::Fg(brdgme_color::RED,
-                                                     vec![
-                                                              N::text("No undos available"),
-                                                          ])])],
+                                                     vec![N::text("No undos available")])])],
                                 &players)
                         .unwrap());
                 }
@@ -72,9 +70,7 @@ pub fn repl<T>(original_game: &T)
                     Err(GameError::InvalidInput(desc)) => {
                         game = previous;
                         output(ansi(&[N::Bold(vec![N::Fg(brdgme_color::RED,
-                                                         vec![
-                            N::text(desc),
-                                                 ])])],
+                                                         vec![N::text(desc)])])],
                                     &players)
                             .unwrap());
                     }
