@@ -4,9 +4,9 @@ version = "0.1.0"
 authors = ["Michael Alexander <beefsack@gmail.com>"]
 
 [dependencies]
+brdgme-std = { path = "../std" }
 brdgme-markup = { path = "../markup" }
 brdgme-game = { path = "../game" }
 brdgme-color = { path = "../color" }
-serde = "^0.8.10"
-serde_yaml = "^0.4.0"
-serde_json = "^0.8.1"
+serde = "*"
+serde_json = "*"

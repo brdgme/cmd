@@ -2,7 +2,6 @@
 
 extern crate serde;
 extern crate serde_json;
-extern crate serde_yaml;
 
 extern crate brdgme_game;
 extern crate brdgme_markup;
@@ -48,7 +47,6 @@ pub fn repl<T>(original_game: &T)
         let previous = game.clone();
         match input.as_ref() {
             ":dump" | ":d" => output(format!("{:#?}", game)),
-            ":yaml" => output(serde_yaml::ser::to_string(&game).unwrap()),
             ":json" => output(serde_json::ser::to_string_pretty(&game).unwrap()),
             ":undo" | ":u" => {
                 if let Some(u) = undo_stack.pop() {
@@ -98,9 +96,7 @@ pub fn repl<T>(original_game: &T)
 fn output_logs(logs: Vec<Log>, players: &[String]) {
     for l in logs {
         output(format!("{} - {}",
-                       ansi(&[N::Bold(vec![N::text(format!("{}", l.at.asctime()))])],
-                            &players)
-                           .unwrap(),
+                       ansi(&[N::Bold(vec![N::text(format!("{}", l.at))])], &players).unwrap(),
                        ansi(&l.content, players).unwrap()));
     }
 }
