@@ -1,5 +1,3 @@
-#![feature(slice_patterns)]
-
 extern crate serde;
 extern crate serde_json;
 extern crate serde_yaml;
@@ -80,7 +78,7 @@ pub fn repl<T>(original_game: &T)
         }
     }
     match game.winners().as_slice() {
-        &[] => output("The game is over, there are no winners"),
+        w if w.len() == 0 => output("The game is over, there are no winners"),
         w => {
             output(format!("The game is over, won by {}",
                            w.iter()
