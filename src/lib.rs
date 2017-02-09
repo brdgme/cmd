@@ -39,9 +39,9 @@ pub fn repl<T>(original_game: &T)
         }
         let current_player = turn[0];
         output(format!("\n{}\n",
-                       ansi(&game.pub_state(Some(current_player)).render(), &players).unwrap()));
+                       ansi(&game.pub_state(Some(current_player)).render(), &players)));
         let input = prompt(format!("Enter command for {}",
-                                   ansi(&[N::Player(current_player)], &players).unwrap()));
+                                   ansi(&[N::Player(current_player)], &players)));
         let previous = game.clone();
         match input.as_ref() {
             ":dump" | ":d" => output(format!("{:#?}", game)),
@@ -52,8 +52,7 @@ pub fn repl<T>(original_game: &T)
                 } else {
                     output(ansi(&[N::Bold(vec![N::Fg(brdgme_color::RED,
                                                      vec![N::text("No undos available")])])],
-                                &players)
-                        .unwrap());
+                                &players));
                 }
             }
             ":quit" | ":q" => return,
@@ -67,8 +66,7 @@ pub fn repl<T>(original_game: &T)
                         game = previous;
                         output(ansi(&[N::Bold(vec![N::Fg(brdgme_color::RED,
                                                          vec![N::text(desc)])])],
-                                    &players)
-                            .unwrap());
+                                    &players));
                     }
                     Err(e) => panic!(e),
                 }
@@ -87,15 +85,14 @@ pub fn repl<T>(original_game: &T)
         }
 
     }
-    output(format!("\n{}\n",
-                   ansi(&game.pub_state(None).render(), &players).unwrap()));
+    output(format!("\n{}\n", ansi(&game.pub_state(None).render(), &players)));
 }
 
 fn output_logs(logs: Vec<Log>, players: &[String]) {
     for l in logs {
         output(format!("{} - {}",
-                       ansi(&[N::Bold(vec![N::text(format!("{}", l.at))])], &players).unwrap(),
-                       ansi(&l.content, players).unwrap()));
+                       ansi(&[N::Bold(vec![N::text(format!("{}", l.at))])], &players),
+                       ansi(&l.content, players)));
     }
 }
 
