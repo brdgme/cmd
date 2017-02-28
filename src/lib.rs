@@ -12,7 +12,7 @@ use std::fmt::Debug;
 use std::borrow::Cow;
 
 use brdgme_game::{Gamer, Renderer, Log, GameError};
-use brdgme_markup::ansi;
+use brdgme_markup::{ansi, transform};
 use brdgme_markup::ast::Node as N;
 use brdgme_color::Style;
 
@@ -39,9 +39,9 @@ pub fn repl<T>(original_game: &T)
         }
         let current_player = turn[0];
         output(format!("\n{}\n",
-                       ansi(&game.pub_state(Some(current_player)).render(), &players)));
+                       ansi(&transform(&game.pub_state(Some(current_player)).render(), &players))));
         let input = prompt(format!("Enter command for {}",
-                                   ansi(&[N::Player(current_player)], &players)));
+                                   ansi(&transform(&[N::Player(current_player)], &players))));
         let previous = game.clone();
         match input.as_ref() {
             ":dump" | ":d" => output(format!("{:#?}", game)),
@@ -50,9 +50,9 @@ pub fn repl<T>(original_game: &T)
                 if let Some(u) = undo_stack.pop() {
                     game = u;
                 } else {
-                    output(ansi(&[N::Bold(vec![N::Fg(brdgme_color::RED,
+                    output(ansi(&transform(&[N::Bold(vec![N::Fg(brdgme_color::RED,
                                                      vec![N::text("No undos available")])])],
-                                &players));
+                                &players)));
                 }
             }
             ":quit" | ":q" => return,
@@ -64,9 +64,9 @@ pub fn repl<T>(original_game: &T)
                     }
                     Err(GameError::InvalidInput(desc)) => {
                         game = previous;
-                        output(ansi(&[N::Bold(vec![N::Fg(brdgme_color::RED,
+                        output(ansi(&transform(&[N::Bold(vec![N::Fg(brdgme_color::RED,
                                                          vec![N::text(desc)])])],
-                                    &players));
+                                    &players)));
                     }
                     Err(e) => panic!(e),
                 }
@@ -74,7 +74,7 @@ pub fn repl<T>(original_game: &T)
         }
     }
     match game.winners().as_slice() {
-        w if w.len() == 0 => output("The game is over, there are no winners"),
+        w if w.is_empty() => output("The game is over, there are no winners"),
         w => {
             output(format!("The game is over, won by {}",
                            w.iter()
@@ -85,14 +85,14 @@ pub fn repl<T>(original_game: &T)
         }
 
     }
-    output(format!("\n{}\n", ansi(&game.pub_state(None).render(), &players)));
+    output(format!("\n{}\n", ansi(&transform(&game.pub_state(None).render(), &players))));
 }
 
 fn output_logs(logs: Vec<Log>, players: &[String]) {
     for l in logs {
         output(format!("{} - {}",
-                       ansi(&[N::Bold(vec![N::text(format!("{}", l.at))])], &players),
-                       ansi(&l.content, players)));
+                       ansi(&transform(&[N::Bold(vec![N::text(format!("{}", l.at))])], &players)),
+                       ansi(&transform(&l.content, players))));
     }
 }
 
@@ -116,3 +116,4 @@ fn prompt<'a, T>(s: T) -> String
     io::stdin().read_line(&mut input).unwrap();
     input.trim().to_owned()
 }
+
