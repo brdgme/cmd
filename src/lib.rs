@@ -1,5 +1,6 @@
 extern crate serde;
 extern crate serde_json;
+extern crate term_size;
 
 extern crate brdgme_game;
 extern crate brdgme_markup;
@@ -10,10 +11,10 @@ use serde::Serialize;
 use std::io::{self, Write};
 use std::fmt::Debug;
 use std::borrow::Cow;
+use std::iter::repeat;
 
 use brdgme_game::{Gamer, Renderer, Log, GameError};
-use brdgme_markup::{ansi, transform};
-use brdgme_markup::ast::Node as N;
+use brdgme_markup::{ansi, transform, Node, TNode, to_lines, from_lines};
 use brdgme_color::Style;
 
 pub fn repl<T>(original_game: &T)
@@ -34,25 +35,24 @@ pub fn repl<T>(original_game: &T)
     while !game.is_finished() {
         let turn = game.whose_turn();
         if turn.is_empty() {
-            output("no player's turn, exiting");
+            output(&vec![Node::text("no player's turn, exiting")], &players);
             return;
         }
         let current_player = turn[0];
-        output(format!("\n{}\n",
-                       ansi(&transform(&game.pub_state(Some(current_player)).render(), &players))));
+        output(&game.pub_state(Some(current_player)).render(), &players);
         let input = prompt(format!("Enter command for {}",
-                                   ansi(&transform(&[N::Player(current_player)], &players))));
+                                   ansi(&transform(&[Node::Player(current_player)], &players))));
         let previous = game.clone();
         match input.as_ref() {
-            ":dump" | ":d" => output(format!("{:#?}", game)),
-            ":json" => output(serde_json::ser::to_string_pretty(&game).unwrap()),
+            ":dump" | ":d" => println!("{:#?}", game),
+            ":json" => println!("{}", serde_json::ser::to_string_pretty(&game).unwrap()),
             ":undo" | ":u" => {
                 if let Some(u) = undo_stack.pop() {
                     game = u;
                 } else {
-                    output(ansi(&transform(&[N::Bold(vec![N::Fg(brdgme_color::RED,
-                                                     vec![N::text("No undos available")])])],
-                                &players)));
+                    output(&vec![Node::Bold(vec![Node::Fg(brdgme_color::RED,
+                                                          vec![Node::text("No undos available")])])],
+                           &players);
                 }
             }
             ":quit" | ":q" => return,
@@ -64,9 +64,9 @@ pub fn repl<T>(original_game: &T)
                     }
                     Err(GameError::InvalidInput(desc)) => {
                         game = previous;
-                        output(ansi(&transform(&[N::Bold(vec![N::Fg(brdgme_color::RED,
-                                                         vec![N::text(desc)])])],
-                                    &players)));
+                        output(&vec![Node::Bold(vec![Node::Fg(brdgme_color::RED,
+                                                              vec![Node::text(desc)])])],
+                               &players);
                     }
                     Err(e) => panic!(e),
                 }
@@ -74,37 +74,44 @@ pub fn repl<T>(original_game: &T)
         }
     }
     match game.winners().as_slice() {
-        w if w.is_empty() => output("The game is over, there are no winners"),
+        w if w.is_empty() => println!("The game is over, there are no winners"),
         w => {
-            output(format!("The game is over, won by {}",
-                           w.iter()
-                               .filter(|w| **w < players.len())
-                               .map(|w| players[*w].to_owned())
-                               .collect::<Vec<String>>()
-                               .join(", ")))
+            println!("The game is over, won by {}",
+                     w.iter()
+                         .filter(|w| **w < players.len())
+                         .map(|w| players[*w].to_owned())
+                         .collect::<Vec<String>>()
+                         .join(", "))
         }
 
     }
-    output(format!("\n{}\n", ansi(&transform(&game.pub_state(None).render(), &players))));
+    output(&game.pub_state(None).render(), &players);
 }
 
 fn output_logs(logs: Vec<Log>, players: &[String]) {
     for l in logs {
-        output(format!("{} - {}",
-                       ansi(&transform(&[N::Bold(vec![N::text(format!("{}", l.at))])], &players)),
-                       ansi(&transform(&l.content, players))));
+        let mut l_line = vec![Node::Bold(vec![Node::text(format!("{}", l.at))])];
+        l_line.push(Node::text(" - "));
+        l_line.extend(l.content);
+        output(&l_line, players);
     }
 }
 
-fn output<'a, T>(s: T)
-    where T: Into<Cow<'a, str>>
-{
-    println!("{}",
-             s.into()
-                 .split("\n")
-                 .map(|l| format!("{}\x1b[K", l))
-                 .collect::<Vec<String>>()
-                 .join("\n"));
+fn output(nodes: &Vec<Node>, players: &[String]) {
+    let (term_w, _) = term_size::dimensions().unwrap_or_default();
+    print!("{}",
+           ansi(&from_lines(&to_lines(&transform(nodes, players))
+               .iter()
+               .map(|l| {
+            let l_len = TNode::len(l);
+            let mut l = l.to_owned();
+            if l_len < term_w {
+                l.push(TNode::Bg(*Style::default().bg,
+                                 vec![TNode::Text(repeat(" ").take(term_w - l_len).collect())]));
+            }
+            l
+        })
+               .collect::<Vec<Vec<TNode>>>())));
 }
 
 fn prompt<'a, T>(s: T) -> String
@@ -116,4 +123,3 @@ fn prompt<'a, T>(s: T) -> String
     io::stdin().read_line(&mut input).unwrap();
     input.trim().to_owned()
 }
-

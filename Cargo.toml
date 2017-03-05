@@ -10,3 +10,4 @@ brdgme-game = { path = "../game" }
 brdgme-color = { path = "../color" }
 serde = "*"
 serde_json = "*"
+term_size = "0.2.3"
