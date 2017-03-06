@@ -35,7 +35,7 @@ pub fn repl<T>(original_game: &T)
     while !game.is_finished() {
         let turn = game.whose_turn();
         if turn.is_empty() {
-            output(&vec![Node::text("no player's turn, exiting")], &players);
+            output(&[Node::text("no player's turn, exiting")], &players);
             return;
         }
         let current_player = turn[0];
@@ -50,8 +50,8 @@ pub fn repl<T>(original_game: &T)
                 if let Some(u) = undo_stack.pop() {
                     game = u;
                 } else {
-                    output(&vec![Node::Bold(vec![Node::Fg(brdgme_color::RED,
-                                                          vec![Node::text("No undos available")])])],
+                    output(&[Node::Bold(vec![Node::Fg(brdgme_color::RED,
+                                                      vec![Node::text("No undos available")])])],
                            &players);
                 }
             }
@@ -64,8 +64,8 @@ pub fn repl<T>(original_game: &T)
                     }
                     Err(GameError::InvalidInput(desc)) => {
                         game = previous;
-                        output(&vec![Node::Bold(vec![Node::Fg(brdgme_color::RED,
-                                                              vec![Node::text(desc)])])],
+                        output(&[Node::Bold(vec![Node::Fg(brdgme_color::RED,
+                                                          vec![Node::text(desc)])])],
                                &players);
                     }
                     Err(e) => panic!(e),
@@ -97,7 +97,7 @@ fn output_logs(logs: Vec<Log>, players: &[String]) {
     }
 }
 
-fn output(nodes: &Vec<Node>, players: &[String]) {
+fn output(nodes: &[Node], players: &[String]) {
     let (term_w, _) = term_size::dimensions().unwrap_or_default();
     print!("{}",
            ansi(&from_lines(&to_lines(&transform(nodes, players))
