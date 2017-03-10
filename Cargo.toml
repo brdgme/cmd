@@ -9,5 +9,7 @@ brdgme-markup = { path = "../markup" }
 brdgme-game = { path = "../game" }
 brdgme-color = { path = "../color" }
 serde = "*"
+serde_derive = "*"
 serde_json = "*"
+chrono = "*"
 term_size = "0.2.3"

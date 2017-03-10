@@ -13,11 +13,9 @@ use brdgme_game::{Gamer, Renderer, Log, GameError};
 use brdgme_markup::{ansi, transform, Node, TNode, to_lines, from_lines};
 use brdgme_color::Style;
 
-pub fn repl<T>(original_game: &T)
+pub fn repl<T>()
     where T: Gamer + Debug + Clone + Serialize
 {
-    let mut game = original_game.clone();
-    let mut undo_stack: Vec<T> = vec![game.clone()];
     print!("{}", Style::default().ansi());
     let mut players: Vec<String> = vec![];
     loop {
@@ -27,7 +25,9 @@ pub fn repl<T>(original_game: &T)
         }
         players.push(player);
     }
-    output_logs(game.start(players.len()).unwrap(), &players);
+    let (mut game, logs) = T::new(players.len()).unwrap();
+    output_logs(logs, &players);
+    let mut undo_stack: Vec<T> = vec![game.clone()];
     while !game.is_finished() {
         let turn = game.whose_turn();
         if turn.is_empty() {
