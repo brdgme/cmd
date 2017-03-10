@@ -2,7 +2,7 @@ use serde::{Serialize, Deserialize};
 use serde_json;
 
 use brdgme_game::{Gamer, Log};
-use brdgme_markup::Node;
+use brdgme_markup;
 
 use std::fmt::Debug;
 use std::io::{Read, Write};
@@ -22,7 +22,7 @@ enum Request<T: Gamer + Debug + Clone + Serialize + Deserialize> {
 
 #[derive(Serialize, Deserialize)]
 struct CliLog {
-    content: Vec<Node>,
+    content: String,
     at: String,
     public: bool,
     to: Vec<usize>,
@@ -31,7 +31,7 @@ struct CliLog {
 impl CliLog {
     fn from_log(log: &Log) -> CliLog {
         CliLog {
-            content: log.content.clone(),
+            content: brdgme_markup::to_string(&log.content),
             at: format!("{}", log.at.format("%+")),
             public: log.public,
             to: log.to.clone(),
@@ -45,8 +45,8 @@ impl CliLog {
 
 #[derive(Serialize)]
 struct Rendering {
-    public: Vec<Node>,
-    private: Vec<Vec<Node>>,
+    public: String,
+    private: Vec<String>,
 }
 
 impl Rendering {
@@ -54,7 +54,7 @@ impl Rendering {
         use brdgme_game::Renderer;
 
         Rendering {
-            public: gamer.pub_state(None).render(),
+            public: brdgme_markup::to_string(&gamer.pub_state(None).render()),
             private: vec![],
         }
     }
