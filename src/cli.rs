@@ -8,7 +8,6 @@ use std::fmt::Debug;
 use std::io::{Read, Write};
 
 #[derive(Deserialize, Debug)]
-#[serde(tag = "type")]
 enum Request<T: Gamer + Debug + Clone + Serialize + Deserialize> {
     New { players: usize },
     Play {
@@ -52,7 +51,6 @@ struct GameResponse<T: Gamer + Debug + Clone + Serialize + Deserialize> {
 }
 
 #[derive(Serialize)]
-#[serde(tag = "type")]
 enum Response<T: Gamer + Debug + Clone + Serialize + Deserialize> {
     New {
         game: GameResponse<T>,
