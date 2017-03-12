@@ -10,21 +10,24 @@ use std::borrow::Cow;
 use std::iter::repeat;
 
 use brdgme_game::{Gamer, Renderer, Log, GameError};
-use brdgme_markup::{ansi, transform, Node, TNode, to_lines, from_lines};
-use brdgme_color::Style;
+use brdgme_markup::{ansi, transform, Node, TNode, to_lines, from_lines, Player};
+use brdgme_color::{Style, player_color};
 
 pub fn repl<T>()
     where T: Gamer + Debug + Clone + Serialize
 {
     print!("{}", Style::default().ansi());
-    let mut players: Vec<String> = vec![];
+    let mut player_names: Vec<String> = vec![];
     loop {
-        let player = prompt(format!("Enter player {} (or blank to finish)", players.len() + 1));
+        let player = prompt(format!("Enter player {} (or blank to finish)", player_names.len() + 1));
         if player == "" {
             break;
         }
-        players.push(player);
+        player_names.push(player);
     }
+    let players = player_names.iter().enumerate()
+        .map(|(i, pn)| Player { name: pn.to_string(), color: player_color(i).to_owned() })
+        .collect::<Vec<Player>>();
     let (mut game, logs) = T::new(players.len()).unwrap();
     output_logs(logs, &players);
     let mut undo_stack: Vec<T> = vec![game.clone()];
@@ -46,21 +49,21 @@ pub fn repl<T>()
                 if let Some(u) = undo_stack.pop() {
                     game = u;
                 } else {
-                    output(&[Node::Bold(vec![Node::Fg(brdgme_color::RED,
+                    output(&[Node::Bold(vec![Node::Fg(brdgme_color::RED.into(),
                                                       vec![Node::text("No undos available")])])],
                            &players);
                 }
             }
             ":quit" | ":q" => return,
             _ => {
-                match game.command(current_player, &input, &players) {
+                match game.command(current_player, &input, &player_names) {
                     Ok((l, _)) => {
                         undo_stack.push(previous);
                         output_logs(l, &players);
                     }
                     Err(GameError::InvalidInput(desc)) => {
                         game = previous;
-                        output(&[Node::Bold(vec![Node::Fg(brdgme_color::RED,
+                        output(&[Node::Bold(vec![Node::Fg(brdgme_color::RED.into(),
                                                           vec![Node::text(desc)])])],
                                &players);
                     }
@@ -73,9 +76,8 @@ pub fn repl<T>()
         w if w.is_empty() => println!("The game is over, there are no winners"),
         w => {
             println!("The game is over, won by {}",
-                     w.iter()
-                         .filter(|w| **w < players.len())
-                         .map(|w| players[*w].to_owned())
+                    w.iter()
+                    .filter_map(|w| players.get(*w).map(|p| p.name.to_string()))
                          .collect::<Vec<String>>()
                          .join(", "))
         }
@@ -84,7 +86,7 @@ pub fn repl<T>()
     output(&game.pub_state(None).render(), &players);
 }
 
-fn output_logs(logs: Vec<Log>, players: &[String]) {
+fn output_logs(logs: Vec<Log>, players: &[Player]) {
     for l in logs {
         let mut l_line = vec![Node::Bold(vec![Node::text(format!("{}", l.at))])];
         l_line.push(Node::text(" - "));
@@ -93,7 +95,7 @@ fn output_logs(logs: Vec<Log>, players: &[String]) {
     }
 }
 
-fn output(nodes: &[Node], players: &[String]) {
+fn output(nodes: &[Node], players: &[Player]) {
     let (term_w, _) = term_size::dimensions().unwrap_or_default();
     print!("{}",
            ansi(&from_lines(&to_lines(&transform(nodes, players))
