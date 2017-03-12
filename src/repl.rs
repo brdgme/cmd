@@ -19,14 +19,21 @@ pub fn repl<T>()
     print!("{}", Style::default().ansi());
     let mut player_names: Vec<String> = vec![];
     loop {
-        let player = prompt(format!("Enter player {} (or blank to finish)", player_names.len() + 1));
+        let player = prompt(format!("Enter player {} (or blank to finish)",
+                                    player_names.len() + 1));
         if player == "" {
             break;
         }
         player_names.push(player);
     }
-    let players = player_names.iter().enumerate()
-        .map(|(i, pn)| Player { name: pn.to_string(), color: player_color(i).to_owned() })
+    let players = player_names.iter()
+        .enumerate()
+        .map(|(i, pn)| {
+                 Player {
+                     name: pn.to_string(),
+                     color: player_color(i).to_owned(),
+                 }
+             })
         .collect::<Vec<Player>>();
     let (mut game, logs) = T::new(players.len()).unwrap();
     output_logs(logs, &players);
@@ -76,8 +83,8 @@ pub fn repl<T>()
         w if w.is_empty() => println!("The game is over, there are no winners"),
         w => {
             println!("The game is over, won by {}",
-                    w.iter()
-                    .filter_map(|w| players.get(*w).map(|p| p.name.to_string()))
+                     w.iter()
+                         .filter_map(|w| players.get(*w).map(|p| p.name.to_string()))
                          .collect::<Vec<String>>()
                          .join(", "))
         }
