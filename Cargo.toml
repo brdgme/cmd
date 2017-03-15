@@ -4,10 +4,10 @@ version = "0.1.0"
 authors = ["Michael Alexander <beefsack@gmail.com>"]
 
 [dependencies]
-brdgme-std = { path = "../std" }
-brdgme-markup = { path = "../markup" }
-brdgme-game = { path = "../game" }
-brdgme-color = { path = "../color" }
+brdgme-std = { git = "https://github.com/brdgme/std.git" }
+brdgme-markup = { git = "https://github.com/brdgme/markup.git" }
+brdgme-game = { git = "https://github.com/brdgme/game.git" }
+brdgme-color = { git = "https://github.com/brdgme/color.git" }
 serde = "*"
 serde_derive = "*"
 serde_json = "*"
