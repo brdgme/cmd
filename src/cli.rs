@@ -48,6 +48,7 @@ struct GameResponse<T: Gamer + Debug + Clone + Serialize + Deserialize> {
     is_finished: bool,
     whose_turn: Vec<usize>,
     winners: Vec<usize>,
+    eliminated: Vec<usize>,
 }
 
 #[derive(Serialize)]
@@ -73,6 +74,7 @@ impl<T: Gamer + Debug + Clone + Serialize + Deserialize> GameResponse<T> {
             is_finished: gamer.is_finished(),
             whose_turn: gamer.whose_turn(),
             winners: gamer.winners(),
+            eliminated: gamer.eliminated(),
         }
     }
 }
