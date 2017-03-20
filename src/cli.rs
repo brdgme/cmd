@@ -1,11 +1,13 @@
 use serde::{Serialize, Deserialize};
 use serde_json;
 
-use brdgme_game::{Gamer, Log, Renderer, GameError};
+use brdgme_game::{Gamer, Log, Renderer, GameError, Status};
 use brdgme_markup;
 
 use std::fmt::Debug;
 use std::io::{Read, Write};
+
+use errors::*;
 
 #[derive(Deserialize, Debug)]
 enum Request<T: Gamer + Debug + Clone + Serialize + Deserialize> {
@@ -43,22 +45,19 @@ impl CliLog {
 }
 
 #[derive(Serialize)]
-struct GameResponse<T: Gamer + Debug + Clone + Serialize + Deserialize> {
-    game: T,
-    is_finished: bool,
-    whose_turn: Vec<usize>,
-    winners: Vec<usize>,
-    eliminated: Vec<usize>,
+struct GameResponse {
+    state: String,
+    status: Status,
 }
 
 #[derive(Serialize)]
-enum Response<T: Gamer + Debug + Clone + Serialize + Deserialize> {
+enum Response {
     New {
-        game: GameResponse<T>,
+        game: GameResponse,
         logs: Vec<CliLog>,
     },
     Play {
-        game: GameResponse<T>,
+        game: GameResponse,
         logs: Vec<CliLog>,
         remaining_command: String,
     },
@@ -67,15 +66,12 @@ enum Response<T: Gamer + Debug + Clone + Serialize + Deserialize> {
     SystemError { message: String },
 }
 
-impl<T: Gamer + Debug + Clone + Serialize + Deserialize> GameResponse<T> {
-    fn from_gamer(gamer: &T) -> GameResponse<T> {
-        GameResponse {
-            game: gamer.clone(),
-            is_finished: gamer.is_finished(),
-            whose_turn: gamer.whose_turn(),
-            winners: gamer.winners(),
-            eliminated: gamer.eliminated(),
-        }
+impl GameResponse {
+    fn from_gamer<T: Gamer + Serialize>(gamer: &T) -> Result<GameResponse> {
+        Ok(GameResponse {
+               state: serde_json::to_string(gamer).chain_err(|| "unable to encode game state")?,
+               status: gamer.status(),
+           })
     }
 }
 
@@ -88,11 +84,11 @@ pub fn cli<T, I, O>(input: I, output: &mut O)
              "{}",
              serde_json::to_string(&match serde_json::from_reader::<_, Request<T>>(input) {
                                         Err(message) => {
-                                            Response::SystemError::<T> {
-                                                message: message.to_string(),
-                                            }
+                                            Response::SystemError { message: message.to_string() }
                                         }
-                                        Ok(Request::New { players }) => handle_new(players),
+                                        Ok(Request::New::<T> { players }) => {
+                                            handle_new::<T>(players)
+                                        }
                                         Ok(Request::Play { player, command, names, game }) => {
                                             handle_play(player, &command, &names, &game)
                                         }
@@ -104,22 +100,26 @@ pub fn cli<T, I, O>(input: I, output: &mut O)
             .unwrap();
 }
 
-fn handle_new<T>(players: usize) -> Response<T>
+fn handle_new<T>(players: usize) -> Response
     where T: Gamer + Debug + Clone + Serialize + Deserialize
 {
     match T::new(players) {
         Ok((game, logs)) => {
-            Response::New {
-                game: GameResponse::from_gamer(&game),
-                logs: CliLog::from_logs(&logs),
-            }
+            GameResponse::from_gamer(&game)
+                .map(|gs| {
+                         Response::New {
+                             game: gs,
+                             logs: CliLog::from_logs(&logs),
+                         }
+                     })
+                .unwrap_or_else(|e| Response::SystemError { message: e.to_string() })
         }
         Err(GameError::Internal(e)) => Response::SystemError { message: e.to_string() },
         Err(e) => Response::UserError { message: e.to_string() },
     }
 }
 
-fn handle_play<T>(player: usize, command: &str, names: &[String], game: &T) -> Response<T>
+fn handle_play<T>(player: usize, command: &str, names: &[String], game: &T) -> Response
     where T: Gamer + Debug + Clone + Serialize + Deserialize
 {
     let mut game = game.clone();
@@ -131,11 +131,17 @@ fn handle_play<T>(player: usize, command: &str, names: &[String], game: &T) -> R
                 all_logs.extend(logs);
                 let remaining_trimmed = remaining.trim();
                 if remaining_trimmed.is_empty() || remaining_command == remaining_trimmed {
-                    return Response::Play {
-                               game: GameResponse::from_gamer(&game),
-                               logs: CliLog::from_logs(&all_logs),
-                               remaining_command: remaining_trimmed.to_string(),
-                           };
+                    return GameResponse::from_gamer(&game)
+                               .map(|gr| {
+                        Response::Play {
+                            game: gr,
+                            logs: CliLog::from_logs(&all_logs),
+                            remaining_command: remaining_trimmed.to_string(),
+                        }
+                    })
+                               .unwrap_or_else(|e| {
+                                                   Response::SystemError { message: e.to_string() }
+                                               });
                 }
                 remaining_command = remaining_trimmed.to_string();
             }
@@ -145,7 +151,7 @@ fn handle_play<T>(player: usize, command: &str, names: &[String], game: &T) -> R
     }
 }
 
-fn handle_render<T>(player: Option<usize>, game: &T) -> Response<T>
+fn handle_render<T>(player: Option<usize>, game: &T) -> Response
     where T: Gamer + Debug + Clone + Serialize + Deserialize
 {
     Response::Render { render: brdgme_markup::to_string(&game.pub_state(player).render()) }
