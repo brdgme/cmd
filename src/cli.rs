@@ -22,11 +22,11 @@ enum Request<T: Gamer + Debug + Clone + Serialize + Deserialize> {
 }
 
 #[derive(Serialize, Deserialize)]
-struct CliLog {
-    content: String,
-    at: String,
-    public: bool,
-    to: Vec<usize>,
+pub struct CliLog {
+    pub content: String,
+    pub at: String,
+    pub public: bool,
+    pub to: Vec<usize>,
 }
 
 impl CliLog {
@@ -89,9 +89,12 @@ pub fn cli<T, I, O>(input: I, output: &mut O)
                                         Ok(Request::New::<T> { players }) => {
                                             handle_new::<T>(players)
                                         }
-                                        Ok(Request::Play { player, command, names, game }) => {
-                                            handle_play(player, &command, &names, &game)
-                                        }
+                                        Ok(Request::Play {
+                                               player,
+                                               command,
+                                               names,
+                                               game,
+                                           }) => handle_play(player, &command, &names, &game),
                                         Ok(Request::Render { player, game }) => {
                                             handle_render(player, &game)
                                         }
@@ -133,12 +136,12 @@ fn handle_play<T>(player: usize, command: &str, names: &[String], game: &T) -> R
                 if remaining_trimmed.is_empty() || remaining_command == remaining_trimmed {
                     return GameResponse::from_gamer(&game)
                                .map(|gr| {
-                        Response::Play {
-                            game: gr,
-                            logs: CliLog::from_logs(&all_logs),
-                            remaining_command: remaining_trimmed.to_string(),
-                        }
-                    })
+                                        Response::Play {
+                                            game: gr,
+                                            logs: CliLog::from_logs(&all_logs),
+                                            remaining_command: remaining_trimmed.to_string(),
+                                        }
+                                    })
                                .unwrap_or_else(|e| {
                                                    Response::SystemError { message: e.to_string() }
                                                });

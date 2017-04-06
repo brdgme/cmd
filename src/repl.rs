@@ -26,7 +26,8 @@ pub fn repl<T>()
         }
         player_names.push(player);
     }
-    let players = player_names.iter()
+    let players = player_names
+        .iter()
         .enumerate()
         .map(|(i, pn)| {
                  Player {
