@@ -1,5 +1,6 @@
 use serde::{Serialize, Deserialize};
 use serde_json;
+use chrono::NaiveDateTime;
 
 use brdgme_game::{Gamer, Log, Renderer, GameError, Status};
 use brdgme_markup;
@@ -24,7 +25,7 @@ enum Request<T: Gamer + Debug + Clone + Serialize + Deserialize> {
 #[derive(Serialize, Deserialize)]
 pub struct CliLog {
     pub content: String,
-    pub at: String,
+    pub at: NaiveDateTime,
     pub public: bool,
     pub to: Vec<usize>,
 }
@@ -33,7 +34,7 @@ impl CliLog {
     fn from_log(log: &Log) -> CliLog {
         CliLog {
             content: brdgme_markup::to_string(&log.content),
-            at: format!("{}", log.at.format("%+")),
+            at: log.at,
             public: log.public,
             to: log.to.clone(),
         }
