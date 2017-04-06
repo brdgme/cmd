@@ -17,7 +17,7 @@ mod repl;
 pub use repl::repl;
 
 mod cli;
-pub use cli::cli;
+pub use cli::{cli, CliLog};
 
 mod errors {
     error_chain!{}
