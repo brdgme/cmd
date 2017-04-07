@@ -1,5 +1,5 @@
 use serde::{Serialize, Deserialize};
-use serde_json;
+use serde_json::{self, Value as JsonValue};
 use chrono::NaiveDateTime;
 
 use brdgme_game::{Gamer, Log, Renderer, GameError, Status};
@@ -11,15 +11,18 @@ use std::io::{Read, Write};
 use errors::*;
 
 #[derive(Serialize, Deserialize, Debug)]
-pub enum Request<T: Gamer + Debug + Clone + Serialize + Deserialize> {
+pub enum Request {
     New { players: usize },
     Play {
         player: usize,
         command: String,
         names: Vec<String>,
-        game: T,
+        game: JsonValue,
     },
-    Render { player: Option<usize>, game: T },
+    Render {
+        player: Option<usize>,
+        game: JsonValue,
+    },
 }
 
 #[derive(Serialize, Deserialize)]
@@ -47,7 +50,7 @@ impl CliLog {
 
 #[derive(Serialize, Deserialize)]
 pub struct GameResponse {
-    pub state: String,
+    pub state: JsonValue,
     pub status: Status,
 }
 
@@ -70,7 +73,7 @@ pub enum Response {
 impl GameResponse {
     fn from_gamer<T: Gamer + Serialize>(gamer: &T) -> Result<GameResponse> {
         Ok(GameResponse {
-               state: serde_json::to_string(gamer)
+               state: serde_json::to_value(gamer)
                    .chain_err(|| "unable to encode game state")?,
                status: gamer.status(),
            })
@@ -84,22 +87,24 @@ pub fn cli<T, I, O>(input: I, output: &mut O)
 {
     writeln!(output,
              "{}",
-             serde_json::to_string(&match serde_json::from_reader::<_, Request<T>>(input) {
+             serde_json::to_string(&match serde_json::from_reader::<_, Request>(input) {
                                         Err(message) => {
                                             Response::SystemError { message: message.to_string() }
                                         }
-                                        Ok(Request::New::<T> { players }) => {
-                                            handle_new::<T>(players)
-                                        }
+                                        Ok(Request::New { players }) => handle_new::<T>(players),
                                         Ok(Request::Play {
                                                player,
                                                command,
                                                names,
                                                game,
-                                           }) => handle_play(player, &command, &names, &game),
+                                           }) => {
+        let game = serde_json::from_value(game).unwrap();
+        handle_play::<T>(player, &command, &names, &game)
+    }
                                         Ok(Request::Render { player, game }) => {
-                                            handle_render(player, &game)
-                                        }
+        let game = serde_json::from_value(game).unwrap();
+        handle_render::<T>(player, &game)
+    }
                                     })
                      .unwrap())
             .unwrap();
