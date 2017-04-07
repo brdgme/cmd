@@ -10,7 +10,7 @@ use std::io::{Read, Write};
 
 use errors::*;
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Request<T: Gamer + Debug + Clone + Serialize + Deserialize> {
     New { players: usize },
     Play {
@@ -45,13 +45,13 @@ impl CliLog {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct GameResponse {
     pub state: String,
     pub status: Status,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub enum Response {
     New {
         game: GameResponse,
