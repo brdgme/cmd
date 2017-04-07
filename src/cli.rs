@@ -25,7 +25,7 @@ pub enum Request {
     },
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct CliLog {
     pub content: String,
     pub at: NaiveDateTime,
@@ -48,13 +48,13 @@ impl CliLog {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct GameResponse {
     pub state: JsonValue,
     pub status: Status,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Response {
     New {
         game: GameResponse,
