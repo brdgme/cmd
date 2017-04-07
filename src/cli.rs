@@ -11,7 +11,7 @@ use std::io::{Read, Write};
 use errors::*;
 
 #[derive(Deserialize, Debug)]
-enum Request<T: Gamer + Debug + Clone + Serialize + Deserialize> {
+pub enum Request<T: Gamer + Debug + Clone + Serialize + Deserialize> {
     New { players: usize },
     Play {
         player: usize,
@@ -46,13 +46,13 @@ impl CliLog {
 }
 
 #[derive(Serialize)]
-struct GameResponse {
-    state: String,
-    status: Status,
+pub struct GameResponse {
+    pub state: String,
+    pub status: Status,
 }
 
 #[derive(Serialize)]
-enum Response {
+pub enum Response {
     New {
         game: GameResponse,
         logs: Vec<CliLog>,
@@ -70,7 +70,8 @@ enum Response {
 impl GameResponse {
     fn from_gamer<T: Gamer + Serialize>(gamer: &T) -> Result<GameResponse> {
         Ok(GameResponse {
-               state: serde_json::to_string(gamer).chain_err(|| "unable to encode game state")?,
+               state: serde_json::to_string(gamer)
+                   .chain_err(|| "unable to encode game state")?,
                status: gamer.status(),
            })
     }

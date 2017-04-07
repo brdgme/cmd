@@ -16,8 +16,7 @@ extern crate brdgme_color;
 mod repl;
 pub use repl::repl;
 
-mod cli;
-pub use cli::{cli, CliLog};
+pub mod cli;
 
 mod errors {
     error_chain!{}
