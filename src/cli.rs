@@ -1,5 +1,5 @@
 use serde::{Serialize, Deserialize};
-use serde_json::{self, Value as JsonValue};
+use serde_json;
 use chrono::NaiveDateTime;
 
 use brdgme_game::{Gamer, Log, Renderer, GameError, Status};
@@ -17,12 +17,9 @@ pub enum Request {
         player: usize,
         command: String,
         names: Vec<String>,
-        game: JsonValue,
+        game: String,
     },
-    Render {
-        player: Option<usize>,
-        game: JsonValue,
-    },
+    Render { player: Option<usize>, game: String },
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -50,7 +47,7 @@ impl CliLog {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GameResponse {
-    pub state: JsonValue,
+    pub state: String,
     pub status: Status,
 }
 
@@ -73,7 +70,7 @@ pub enum Response {
 impl GameResponse {
     fn from_gamer<T: Gamer + Serialize>(gamer: &T) -> Result<GameResponse> {
         Ok(GameResponse {
-               state: serde_json::to_value(gamer)
+               state: serde_json::to_string(gamer)
                    .chain_err(|| "unable to encode game state")?,
                status: gamer.status(),
            })
@@ -98,11 +95,11 @@ pub fn cli<T, I, O>(input: I, output: &mut O)
                                                names,
                                                game,
                                            }) => {
-        let game = serde_json::from_value(game).unwrap();
+        let game = serde_json::from_str(&game).unwrap();
         handle_play::<T>(player, &command, &names, &game)
     }
                                         Ok(Request::Render { player, game }) => {
-        let game = serde_json::from_value(game).unwrap();
+        let game = serde_json::from_str(&game).unwrap();
         handle_render::<T>(player, &game)
     }
                                     })
