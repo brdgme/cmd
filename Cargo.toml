@@ -4,13 +4,12 @@ version = "0.1.0"
 authors = ["Michael Alexander <beefsack@gmail.com>"]
 
 [dependencies]
-brdgme-std = { git = "https://github.com/brdgme/std.git" }
 brdgme-markup = { git = "https://github.com/brdgme/markup.git" }
 brdgme-game = { git = "https://github.com/brdgme/game.git" }
 brdgme-color = { git = "https://github.com/brdgme/color.git" }
-serde = "*"
-serde_derive = "*"
-serde_json = "*"
-chrono = { version = "*", features = ["serde"] }
-error-chain = "*"
+serde = "0.9.13"
+serde_derive = "0.9.13"
+serde_json = "0.9.9"
+chrono = { version = "0.3.0", features = ["serde"] }
+error-chain = "0.10.0"
 term_size = "0.2.3"
