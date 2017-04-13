@@ -1,5 +1,6 @@
 use serde::{Serialize, Deserialize};
 use serde_json;
+use chrono::NaiveDateTime;
 
 use brdgme_game::{Gamer, Log, Renderer, Status, CommandResponse};
 use brdgme_game::errors::{Error as GameError, ErrorKind as GameErrorKind};
@@ -23,6 +24,29 @@ pub enum Request {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+pub struct CliLog {
+    pub content: String,
+    pub at: NaiveDateTime,
+    pub public: bool,
+    pub to: Vec<usize>,
+}
+
+impl CliLog {
+    fn from_log(log: &Log) -> CliLog {
+        CliLog {
+            content: brdgme_markup::to_string(&log.content),
+            at: log.at,
+            public: log.public,
+            to: log.to.clone(),
+        }
+    }
+
+    fn from_logs(logs: &[Log]) -> Vec<CliLog> {
+        logs.iter().map(CliLog::from_log).collect()
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct GameResponse {
     pub state: String,
     pub status: Status,
@@ -30,10 +54,15 @@ pub struct GameResponse {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Response {
-    New { game: GameResponse, logs: Vec<Log> },
+    New {
+        game: GameResponse,
+        logs: Vec<CliLog>,
+    },
     Play {
         game: GameResponse,
-        command_response: CommandResponse,
+        logs: Vec<CliLog>,
+        can_undo: bool,
+        remaining_input: String,
     },
     Render { render: String },
     UserError { message: String },
@@ -89,7 +118,7 @@ fn handle_new<T>(players: usize) -> Response
                 .map(|gs| {
                          Response::New {
                              game: gs,
-                             logs: logs,
+                             logs: CliLog::from_logs(&logs),
                          }
                      })
                 .unwrap_or_else(|e| Response::SystemError { message: e.to_string() })
@@ -105,12 +134,18 @@ fn handle_play<T>(player: usize, command: &str, names: &[String], game: &mut T) 
     where T: Gamer + Debug + Clone + Serialize + Deserialize
 {
     match game.command(player, command, names) {
-        Ok(cr) => {
+        Ok(CommandResponse {
+               logs,
+               can_undo,
+               remaining_input,
+           }) => {
             GameResponse::from_gamer(game)
                 .map(|gr| {
                          Response::Play {
                              game: gr,
-                             command_response: cr,
+                             logs: CliLog::from_logs(&logs),
+                             can_undo: can_undo,
+                             remaining_input: remaining_input,
                          }
                      })
                 .unwrap_or_else(|e| Response::SystemError { message: e.to_string() })
