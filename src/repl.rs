@@ -9,7 +9,8 @@ use std::fmt::Debug;
 use std::borrow::Cow;
 use std::iter::repeat;
 
-use brdgme_game::{Gamer, Renderer, Log, GameError};
+use brdgme_game::{Gamer, Renderer, Log, CommandResponse};
+use brdgme_game::errors::{Error as GameError, ErrorKind as GameErrorKind};
 use brdgme_markup::{ansi, transform, Node, TNode, to_lines, from_lines, Player};
 use brdgme_color::{Style, player_color};
 
@@ -65,11 +66,11 @@ pub fn repl<T>()
             ":quit" | ":q" => return,
             _ => {
                 match game.command(current_player, &input, &player_names) {
-                    Ok((l, _)) => {
+                    Ok(CommandResponse { logs, .. }) => {
                         undo_stack.push(previous);
-                        output_logs(l, &players);
+                        output_logs(logs, &players);
                     }
-                    Err(GameError::InvalidInput(desc)) => {
+                    Err(GameError(GameErrorKind::InvalidInput(desc), _)) => {
                         game = previous;
                         output(&[Node::Bold(vec![Node::Fg(brdgme_color::RED.into(),
                                                           vec![Node::text(desc)])])],

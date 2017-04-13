@@ -19,5 +19,9 @@ pub use repl::repl;
 pub mod cli;
 
 mod errors {
-    error_chain!{}
+    error_chain!{
+        links {
+            Game(::brdgme_game::errors::Error, ::brdgme_game::errors::ErrorKind);
+        }
+    }
 }
