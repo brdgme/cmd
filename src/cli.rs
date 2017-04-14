@@ -4,6 +4,7 @@ use chrono::NaiveDateTime;
 
 use brdgme_game::{Gamer, Log, Renderer, Status, CommandResponse};
 use brdgme_game::errors::{Error as GameError, ErrorKind as GameErrorKind};
+use brdgme_game::command::Specs as CommandSpecs;
 use brdgme_markup;
 
 use std::fmt::Debug;
@@ -20,7 +21,11 @@ pub enum Request {
         names: Vec<String>,
         game: String,
     },
-    Render { player: Option<usize>, game: String },
+    Render {
+        player: Option<usize>,
+        game: String,
+        names: Vec<String>,
+    },
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -64,7 +69,11 @@ pub enum Response {
         can_undo: bool,
         remaining_input: String,
     },
-    Render { render: String },
+    Render {
+        pub_state: String,
+        render: String,
+        command_spec: Option<CommandSpecs>,
+    },
     UserError { message: String },
     SystemError { message: String },
 }
@@ -100,9 +109,13 @@ pub fn cli<T, I, O>(input: I, output: &mut O)
         let mut game = serde_json::from_str(&game).unwrap();
         handle_play::<T>(player, &command, &names, &mut game)
     }
-                                        Ok(Request::Render { player, game }) => {
+                                        Ok(Request::Render {
+                                               player,
+                                               game,
+                                               names,
+                                           }) => {
         let game = serde_json::from_str(&game).unwrap();
-        handle_render::<T>(player, &game)
+        handle_render::<T>(player, &game, &names)
     }
                                     })
                      .unwrap())
@@ -157,8 +170,13 @@ fn handle_play<T>(player: usize, command: &str, names: &[String], game: &mut T) 
     }
 }
 
-fn handle_render<T>(player: Option<usize>, game: &T) -> Response
+fn handle_render<T>(player: Option<usize>, game: &T, names: &[String]) -> Response
     where T: Gamer + Debug + Clone + Serialize + Deserialize
 {
-    Response::Render { render: brdgme_markup::to_string(&game.pub_state(player).render()) }
+    let pub_state = game.pub_state(player);
+    Response::Render {
+        pub_state: serde_json::to_string(&pub_state).unwrap(),
+        render: brdgme_markup::to_string(&pub_state.render()),
+        command_spec: player.map(|p| game.command_spec(p, names)),
+    }
 }
