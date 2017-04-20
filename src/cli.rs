@@ -54,6 +54,7 @@ impl CliLog {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GameResponse {
     pub state: String,
+    pub points: Vec<f32>,
     pub status: Status,
 }
 
@@ -83,6 +84,7 @@ impl GameResponse {
         Ok(GameResponse {
                state: serde_json::to_string(gamer)
                    .chain_err(|| "unable to encode game state")?,
+               points: gamer.points(),
                status: gamer.status(),
            })
     }
