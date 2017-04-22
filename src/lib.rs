@@ -17,6 +17,7 @@ mod repl;
 pub use repl::repl;
 
 pub mod cli;
+pub mod bot_cli;
 
 mod errors {
     error_chain!{
