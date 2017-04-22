@@ -10,10 +10,10 @@ use std::io::{Read, Write};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Request {
-    player: usize,
-    pub_state: String,
-    players: Vec<String>,
-    command_spec: CommandSpecs,
+    pub player: usize,
+    pub pub_state: String,
+    pub players: Vec<String>,
+    pub command_spec: CommandSpecs,
 }
 
 pub type Response = Vec<String>;
