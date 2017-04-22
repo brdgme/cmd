@@ -14,6 +14,7 @@ use errors::*;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Request {
+    PlayerCounts,
     New { players: usize },
     Status { game: String },
     Play {
@@ -61,6 +62,7 @@ pub struct GameResponse {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Response {
+    PlayerCounts { player_counts: Vec<usize> },
     New {
         game: GameResponse,
         logs: Vec<CliLog>,
@@ -103,6 +105,7 @@ pub fn cli<T, I, O>(input: I, output: &mut O)
                                         Err(message) => {
                                             Response::SystemError { message: message.to_string() }
                                         }
+                                        Ok(Request::PlayerCounts) => handle_player_counts::<T>(),
                                         Ok(Request::New { players }) => handle_new::<T>(players),
                                         Ok(Request::Status { game }) => {
         let game = serde_json::from_str(&game).unwrap();
@@ -128,6 +131,12 @@ pub fn cli<T, I, O>(input: I, output: &mut O)
                                     })
                      .unwrap())
             .unwrap();
+}
+
+fn handle_player_counts<T>() -> Response
+    where T: Gamer + Debug + Clone + Serialize + Deserialize
+{
+    Response::PlayerCounts { player_counts: T::player_counts() }
 }
 
 fn handle_new<T>(players: usize) -> Response
