@@ -29,9 +29,9 @@ pub fn cli<G, B, I, O>(input: I, output: &mut O)
     writeln!(output,
              "{}",
              serde_json::to_string(&B::commands(request.player,
-                                                pub_state,
+                                                &pub_state,
                                                 &request.players,
-                                                request.command_spec))
+                                                &request.command_spec))
                      .unwrap())
             .unwrap();
 }
