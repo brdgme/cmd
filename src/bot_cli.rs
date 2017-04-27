@@ -3,7 +3,7 @@ use serde_json;
 
 use brdgme_game::Gamer;
 use brdgme_game::bot::Botter;
-use brdgme_game::command::Specs as CommandSpecs;
+use brdgme_game::command::Spec as CommandSpec;
 
 use std::fmt::Debug;
 use std::io::{Read, Write};
@@ -13,7 +13,7 @@ pub struct Request {
     pub player: usize,
     pub pub_state: String,
     pub players: Vec<String>,
-    pub command_spec: CommandSpecs,
+    pub command_spec: CommandSpec,
 }
 
 pub type Response = Vec<String>;

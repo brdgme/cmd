@@ -4,7 +4,7 @@ use chrono::NaiveDateTime;
 
 use brdgme_game::{Gamer, Log, Renderer, Status, CommandResponse};
 use brdgme_game::errors::{Error as GameError, ErrorKind as GameErrorKind};
-use brdgme_game::command::Specs as CommandSpecs;
+use brdgme_game::command::Spec as CommandSpec;
 use brdgme_markup;
 
 use std::fmt::Debug;
@@ -77,7 +77,7 @@ pub enum Response {
     Render {
         pub_state: String,
         render: String,
-        command_spec: Option<CommandSpecs>,
+        command_spec: Option<CommandSpec>,
     },
     UserError { message: String },
     SystemError { message: String },
