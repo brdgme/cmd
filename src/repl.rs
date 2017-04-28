@@ -70,13 +70,18 @@ pub fn repl<T>()
                         undo_stack.push(previous);
                         output_logs(logs, &players);
                     }
-                    Err(GameError(GameErrorKind::InvalidInput(desc), _)) => {
-                        game = previous;
-                        output(&[Node::Bold(vec![Node::Fg(brdgme_color::RED.into(),
-                                                          vec![Node::text(desc)])])],
-                               &players);
+                    Err(e) => {
+                        match e {
+                            GameError(GameErrorKind::Internal(..), ..) => panic!(e),
+                            _ => {
+                                game = previous;
+                                output(&[Node::Bold(vec![Node::Fg(brdgme_color::RED.into(),
+                                                              vec![Node::text(e.to_string())])])],
+                                       &players);
+
+                            }
+                        }
                     }
-                    Err(e) => panic!(e),
                 }
             }
         }
