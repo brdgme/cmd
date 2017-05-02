@@ -1,4 +1,5 @@
-use serde::{Serialize, Deserialize};
+use serde::Serialize;
+use serde::de::DeserializeOwned;
 use serde_json;
 
 use brdgme_game::Gamer;
@@ -19,7 +20,7 @@ pub struct Request {
 pub type Response = Vec<String>;
 
 pub fn cli<G, B, I, O>(bot: &mut B, input: I, output: &mut O)
-    where G: Gamer + Debug + Clone + Serialize + Deserialize,
+    where G: Gamer + Debug + Clone + Serialize + DeserializeOwned,
           B: Botter<G>,
           I: Read,
           O: Write

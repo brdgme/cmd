@@ -1,4 +1,5 @@
-use serde::{Serialize, Deserialize};
+use serde::Serialize;
+use serde::de::DeserializeOwned;
 use serde_json;
 use chrono::NaiveDateTime;
 
@@ -15,7 +16,7 @@ use errors::*;
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Request {
     PlayerCounts,
-    New { players: usize },
+    New { names: Vec<String> },
     Status { game: String },
     Play {
         player: usize,
@@ -61,11 +62,20 @@ pub struct GameResponse {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+pub struct Render {
+    pub pub_state: String,
+    pub render: String,
+    pub command_spec: Option<CommandSpec>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Response {
     PlayerCounts { player_counts: Vec<usize> },
     New {
         game: GameResponse,
         logs: Vec<CliLog>,
+        public_render: Render,
+        player_renders: Vec<Render>,
     },
     Status { game: GameResponse },
     Play {
@@ -73,12 +83,10 @@ pub enum Response {
         logs: Vec<CliLog>,
         can_undo: bool,
         remaining_input: String,
+        public_render: Render,
+        player_renders: Vec<Render>,
     },
-    Render {
-        pub_state: String,
-        render: String,
-        command_spec: Option<CommandSpec>,
-    },
+    Render { render: Render },
     UserError { message: String },
     SystemError { message: String },
 }
@@ -95,7 +103,7 @@ impl GameResponse {
 }
 
 pub fn cli<T, I, O>(input: I, output: &mut O)
-    where T: Gamer + Debug + Clone + Serialize + Deserialize,
+    where T: Gamer + Debug + Clone + Serialize + DeserializeOwned,
           I: Read,
           O: Write
 {
@@ -106,7 +114,7 @@ pub fn cli<T, I, O>(input: I, output: &mut O)
                                             Response::SystemError { message: message.to_string() }
                                         }
                                         Ok(Request::PlayerCounts) => handle_player_counts::<T>(),
-                                        Ok(Request::New { players }) => handle_new::<T>(players),
+                                        Ok(Request::New { names }) => handle_new::<T>(&names),
                                         Ok(Request::Status { game }) => {
         let game = serde_json::from_str(&game).unwrap();
         handle_status::<T>(&game)
@@ -134,23 +142,48 @@ pub fn cli<T, I, O>(input: I, output: &mut O)
 }
 
 fn handle_player_counts<T>() -> Response
-    where T: Gamer + Debug + Clone + Serialize + Deserialize
+    where T: Gamer + Debug + Clone + Serialize + DeserializeOwned
 {
     Response::PlayerCounts { player_counts: T::player_counts() }
 }
 
-fn handle_new<T>(players: usize) -> Response
-    where T: Gamer + Debug + Clone + Serialize + Deserialize
+fn renders<T>(game: &T, names: &[String]) -> (Render, Vec<Render>)
+    where T: Gamer + Debug + Clone + Serialize + DeserializeOwned
 {
-    match T::new(players) {
+    let pub_state = game.pub_state(None);
+    let pub_render = Render {
+        pub_state: serde_json::to_string(&pub_state).unwrap(),
+        render: brdgme_markup::to_string(&pub_state.render()),
+        command_spec: None,
+    };
+    let player_renders: Vec<Render> = (0..game.player_count())
+        .map(|p| {
+                 let pub_state = game.pub_state(Some(p));
+                 Render {
+                     pub_state: serde_json::to_string(&pub_state).unwrap(),
+                     render: brdgme_markup::to_string(&pub_state.render()),
+                     command_spec: Some(game.command_spec(p, names)),
+                 }
+             })
+        .collect();
+    (pub_render, player_renders)
+}
+
+fn handle_new<T>(names: &[String]) -> Response
+    where T: Gamer + Debug + Clone + Serialize + DeserializeOwned
+{
+    match T::new(names.len()) {
         Ok((game, logs)) => {
             GameResponse::from_gamer(&game)
                 .map(|gs| {
-                         Response::New {
-                             game: gs,
-                             logs: CliLog::from_logs(&logs),
-                         }
-                     })
+                    let (public_render, player_renders) = renders(&game, names);
+                    Response::New {
+                        game: gs,
+                        logs: CliLog::from_logs(&logs),
+                        public_render,
+                        player_renders,
+                    }
+                })
                 .unwrap_or_else(|e| Response::SystemError { message: e.to_string() })
         }
         Err(GameError(GameErrorKind::Internal(e), _)) => {
@@ -161,7 +194,7 @@ fn handle_new<T>(players: usize) -> Response
 }
 
 fn handle_status<T>(game: &T) -> Response
-    where T: Gamer + Debug + Clone + Serialize + Deserialize
+    where T: Gamer + Debug + Clone + Serialize + DeserializeOwned
 {
     GameResponse::from_gamer(game)
         .map(|gr| Response::Status { game: gr })
@@ -169,7 +202,7 @@ fn handle_status<T>(game: &T) -> Response
 }
 
 fn handle_play<T>(player: usize, command: &str, names: &[String], game: &mut T) -> Response
-    where T: Gamer + Debug + Clone + Serialize + Deserialize
+    where T: Gamer + Debug + Clone + Serialize + DeserializeOwned
 {
     match game.command(player, command, names) {
         Ok(CommandResponse {
@@ -179,13 +212,16 @@ fn handle_play<T>(player: usize, command: &str, names: &[String], game: &mut T) 
            }) => {
             GameResponse::from_gamer(game)
                 .map(|gr| {
-                         Response::Play {
-                             game: gr,
-                             logs: CliLog::from_logs(&logs),
-                             can_undo: can_undo,
-                             remaining_input: remaining_input,
-                         }
-                     })
+                    let (public_render, player_renders) = renders(game, names);
+                    Response::Play {
+                        game: gr,
+                        logs: CliLog::from_logs(&logs),
+                        can_undo,
+                        remaining_input,
+                        public_render,
+                        player_renders,
+                    }
+                })
                 .unwrap_or_else(|e| Response::SystemError { message: e.to_string() })
         }
         Err(GameError(GameErrorKind::Internal(e), _)) => {
@@ -196,12 +232,14 @@ fn handle_play<T>(player: usize, command: &str, names: &[String], game: &mut T) 
 }
 
 fn handle_render<T>(player: Option<usize>, game: &T, names: &[String]) -> Response
-    where T: Gamer + Debug + Clone + Serialize + Deserialize
+    where T: Gamer + Debug + Clone + Serialize + DeserializeOwned
 {
     let pub_state = game.pub_state(player);
     Response::Render {
-        pub_state: serde_json::to_string(&pub_state).unwrap(),
-        render: brdgme_markup::to_string(&pub_state.render()),
-        command_spec: player.map(|p| game.command_spec(p, names)),
+        render: Render {
+            pub_state: serde_json::to_string(&pub_state).unwrap(),
+            render: brdgme_markup::to_string(&pub_state.render()),
+            command_spec: player.map(|p| game.command_spec(p, names)),
+        },
     }
 }
