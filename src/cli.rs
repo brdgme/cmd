@@ -13,7 +13,7 @@ use std::io::{Read, Write};
 
 use errors::*;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Request {
     PlayerCounts,
     New { players: usize },
@@ -27,7 +27,7 @@ pub enum Request {
     Render { player: Option<usize>, game: String },
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CliLog {
     pub content: String,
     pub at: NaiveDateTime,
@@ -50,21 +50,21 @@ impl CliLog {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GameResponse {
     pub state: String,
     pub points: Vec<f32>,
     pub status: Status,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Render {
     pub pub_state: String,
     pub render: String,
     pub command_spec: Option<CommandSpec>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Response {
     PlayerCounts { player_counts: Vec<usize> },
     New {
@@ -106,29 +106,29 @@ pub fn cli<T, I, O>(input: I, output: &mut O)
     writeln!(output,
              "{}",
              serde_json::to_string(&match serde_json::from_reader::<_, Request>(input) {
-                                        Err(message) => {
-                                            Response::SystemError { message: message.to_string() }
-                                        }
-                                        Ok(Request::PlayerCounts) => handle_player_counts::<T>(),
-                                        Ok(Request::New { players }) => handle_new::<T>(players),
-                                        Ok(Request::Status { game }) => {
-        let game = serde_json::from_str(&game).unwrap();
-        handle_status::<T>(&game)
-    }
-                                        Ok(Request::Play {
-                                               player,
-                                               command,
-                                               names,
-                                               game,
-                                           }) => {
-        let mut game = serde_json::from_str(&game).unwrap();
-        handle_play::<T>(player, &command, &names, &mut game)
-    }
-                                        Ok(Request::Render { player, game }) => {
-        let game = serde_json::from_str(&game).unwrap();
-        handle_render::<T>(player, &game)
-    }
-                                    })
+                                       Err(message) => {
+                                           Response::SystemError { message: message.to_string() }
+                                       }
+                                       Ok(Request::PlayerCounts) => handle_player_counts::<T>(),
+                                       Ok(Request::New { players }) => handle_new::<T>(players),
+                                       Ok(Request::Status { game }) => {
+                                           let game = serde_json::from_str(&game).unwrap();
+                                           handle_status::<T>(&game)
+                                       }
+                                       Ok(Request::Play {
+                                              player,
+                                              command,
+                                              names,
+                                              game,
+                                          }) => {
+                                           let mut game = serde_json::from_str(&game).unwrap();
+                                           handle_play::<T>(player, &command, &names, &mut game)
+                                       }
+                                       Ok(Request::Render { player, game }) => {
+                                           let game = serde_json::from_str(&game).unwrap();
+                                           handle_render::<T>(player, &game)
+                                       }
+                                   })
                      .unwrap())
             .unwrap();
 }
