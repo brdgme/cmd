@@ -154,7 +154,7 @@ fn renders<T>(game: &T) -> (Render, Vec<Render>)
                  Render {
                      pub_state: serde_json::to_string(&pub_state).unwrap(),
                      render: brdgme_markup::to_string(&pub_state.render()),
-                     command_spec: Some(game.command_spec(p)),
+                     command_spec: game.command_spec(p),
                  }
              })
         .collect();
@@ -231,7 +231,7 @@ fn handle_render<T>(player: Option<usize>, game: &T) -> Response
         render: Render {
             pub_state: serde_json::to_string(&pub_state).unwrap(),
             render: brdgme_markup::to_string(&pub_state.render()),
-            command_spec: player.map(|p| game.command_spec(p)),
+            command_spec: player.and_then(|p| game.command_spec(p)),
         },
     }
 }
