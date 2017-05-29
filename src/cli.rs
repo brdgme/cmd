@@ -73,7 +73,11 @@ pub enum Response {
         public_render: Render,
         player_renders: Vec<Render>,
     },
-    Status { game: GameResponse },
+    Status {
+        game: GameResponse,
+        public_render: Render,
+        player_renders: Vec<Render>,
+    },
     Play {
         game: GameResponse,
         logs: Vec<CliLog>,
@@ -189,7 +193,14 @@ fn handle_status<T>(game: &T) -> Response
     where T: Gamer + Debug + Clone + Serialize + DeserializeOwned
 {
     GameResponse::from_gamer(game)
-        .map(|gr| Response::Status { game: gr })
+        .map(|gr| {
+                 let (public_render, player_renders) = renders(game);
+                 Response::Status {
+                     game: gr,
+                     public_render,
+                     player_renders,
+                 }
+             })
         .unwrap_or_else(|e| Response::SystemError { message: e.to_string() })
 }
 
