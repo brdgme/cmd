@@ -12,14 +12,12 @@ extern crate error_chain;
 extern crate brdgme_game;
 extern crate brdgme_markup;
 extern crate brdgme_color;
-extern crate brdgme_rand_bot;
 
 mod repl;
 pub use repl::repl;
 
 pub mod cli;
 pub mod bot_cli;
-pub mod fuzz;
 
 mod errors {
     error_chain!{
