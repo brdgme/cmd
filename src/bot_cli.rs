@@ -33,6 +33,6 @@ pub fn cli<G, B, I, O>(bot: &mut B, input: I, output: &mut O)
                                                  &pub_state,
                                                  &request.players,
                                                  &request.command_spec))
-                     .unwrap())
-            .unwrap();
+                 .unwrap())
+        .unwrap();
 }

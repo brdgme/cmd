@@ -10,6 +10,7 @@ use std::borrow::Cow;
 use std::iter::repeat;
 
 use brdgme_game::{Gamer, Renderer, Log, CommandResponse};
+use brdgme_game::command::doc;
 use brdgme_game::errors::{Error as GameError, ErrorKind as GameErrorKind};
 use brdgme_markup::{ansi, transform, Node, TNode, to_lines, from_lines, Player};
 use brdgme_color::{Style, player_color};
@@ -48,8 +49,12 @@ pub fn repl<T>()
         }
         let current_player = turn[0];
         output(&game.pub_state(Some(current_player)).render(), &players);
-        let input = prompt(format!("Enter command for {}",
-                                   ansi(&transform(&[Node::Player(current_player)], &players))));
+        println!();
+        if let Some(spec) = game.command_spec(current_player) {
+            output(&doc::render(&spec.doc()), &players);
+        }
+        println!();
+        let input = prompt(ansi(&transform(&[Node::Player(current_player)], &players)));
         let previous = game.clone();
         match input.as_ref() {
             ":dump" | ":d" => println!("{:#?}", game),
@@ -111,19 +116,23 @@ fn output_logs(logs: Vec<Log>, players: &[Player]) {
 
 fn output(nodes: &[Node], players: &[Player]) {
     let (term_w, _) = term_size::dimensions().unwrap_or_default();
-    print!("{}",
-           ansi(&from_lines(&to_lines(&transform(nodes, players))
-                                 .iter()
-                                 .map(|l| {
-        let l_len = TNode::len(l);
-        let mut l = l.to_owned();
-        if l_len < term_w {
-            l.push(TNode::Bg(*Style::default().bg,
-                             vec![TNode::Text(repeat(" ").take(term_w - l_len).collect())]));
-        }
-        l
-    })
-                                 .collect::<Vec<Vec<TNode>>>())));
+    print!(
+        "{}",
+        ansi(&from_lines(&to_lines(&transform(nodes, players))
+            .iter()
+            .map(|l| {
+                let l_len = TNode::len(l);
+                let mut l = l.to_owned();
+                if l_len < term_w {
+                    l.push(TNode::Bg(*Style::default().bg,
+                                     vec![TNode::Text(repeat(" ")
+                                                          .take(term_w - l_len)
+                                                          .collect())]));
+                }
+                l
+            })
+            .collect::<Vec<Vec<TNode>>>()))
+    );
 }
 
 fn prompt<'a, T>(s: T) -> String

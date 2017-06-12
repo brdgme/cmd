@@ -132,9 +132,8 @@ pub fn cli<T, I, O>(input: I, output: &mut O)
                                            let game = serde_json::from_str(&game).unwrap();
                                            handle_render::<T>(player, &game)
                                        }
-                                   })
-                     .unwrap())
-            .unwrap();
+                                   }).unwrap())
+        .unwrap();
 }
 
 fn handle_player_counts<T>() -> Response
