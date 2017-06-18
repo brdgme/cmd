@@ -1,10 +1,13 @@
 use serde::Serialize;
+use serde::de::DeserializeOwned;
 use serde_json;
 
 use brdgme_color;
 use term_size;
 
-use std::io::{self, Write};
+use std::fs::File;
+use std::io::{stdin, stdout};
+use std::io::prelude::*;
 use std::fmt::Debug;
 use std::borrow::Cow;
 use std::iter::repeat;
@@ -16,13 +19,16 @@ use brdgme_markup::{ansi, transform, Node, TNode, to_lines, from_lines, Player};
 use brdgme_color::{Style, player_color};
 
 pub fn repl<T>()
-    where T: Gamer + Debug + Clone + Serialize
+where
+    T: Gamer + Debug + Clone + Serialize + DeserializeOwned,
 {
     print!("{}", Style::default().ansi());
     let mut player_names: Vec<String> = vec![];
     loop {
-        let player = prompt(format!("Enter player {} (or blank to finish)",
-                                    player_names.len() + 1));
+        let player = prompt(format!(
+            "Enter player {} (or blank to finish)",
+            player_names.len() + 1
+        ));
         if player == "" {
             break;
         }
@@ -32,11 +38,11 @@ pub fn repl<T>()
         .iter()
         .enumerate()
         .map(|(i, pn)| {
-                 Player {
-                     name: pn.to_string(),
-                     color: player_color(i).to_owned(),
-                 }
-             })
+            Player {
+                name: pn.to_string(),
+                color: player_color(i).to_owned(),
+            }
+        })
         .collect::<Vec<Player>>();
     let (mut game, logs) = T::new(players.len()).unwrap();
     output_logs(logs, &players);
@@ -59,13 +65,33 @@ pub fn repl<T>()
         match input.as_ref() {
             ":dump" | ":d" => println!("{:#?}", game),
             ":json" => println!("{}", serde_json::ser::to_string_pretty(&game).unwrap()),
+            ":save" => {
+                let mut file = File::create("game.json").expect("could not create file");
+                write!(
+                    file,
+                    "{}",
+                    serde_json::ser::to_string_pretty(&game).expect("could not get game JSON")
+                ).expect("could not write to file");
+            }
+            ":load" => {
+                let file = File::open("game.json").expect("could not open file");
+                game = serde_json::from_reader(file).expect("could not read file JSON");
+            }
             ":undo" | ":u" => {
                 if let Some(u) = undo_stack.pop() {
                     game = u;
                 } else {
-                    output(&[Node::Bold(vec![Node::Fg(brdgme_color::RED.into(),
-                                                      vec![Node::text("No undos available")])])],
-                           &players);
+                    output(
+                        &[
+                            Node::Bold(vec![
+                                Node::Fg(
+                                    brdgme_color::RED.into(),
+                                    vec![Node::text("No undos available")]
+                                ),
+                            ]),
+                        ],
+                        &players,
+                    );
                 }
             }
             ":quit" | ":q" => return,
@@ -80,9 +106,17 @@ pub fn repl<T>()
                             GameError(GameErrorKind::Internal(..), ..) => panic!(e),
                             _ => {
                                 game = previous;
-                                output(&[Node::Bold(vec![Node::Fg(brdgme_color::RED.into(),
-                                                              vec![Node::text(e.to_string())])])],
-                                       &players);
+                                output(
+                                    &[
+                                        Node::Bold(vec![
+                                            Node::Fg(
+                                                brdgme_color::RED.into(),
+                                                vec![Node::text(e.to_string())]
+                                            ),
+                                        ]),
+                                    ],
+                                    &players,
+                                );
 
                             }
                         }
@@ -94,11 +128,13 @@ pub fn repl<T>()
     match game.winners().as_slice() {
         w if w.is_empty() => println!("The game is over, there are no winners"),
         w => {
-            println!("The game is over, won by {}",
-                     w.iter()
-                         .filter_map(|w| players.get(*w).map(|p| p.name.to_string()))
-                         .collect::<Vec<String>>()
-                         .join(", "))
+            println!(
+                "The game is over, won by {}",
+                w.iter()
+                    .filter_map(|w| players.get(*w).map(|p| p.name.to_string()))
+                    .collect::<Vec<String>>()
+                    .join(", ")
+            )
         }
 
     }
@@ -124,10 +160,12 @@ fn output(nodes: &[Node], players: &[Player]) {
                 let l_len = TNode::len(l);
                 let mut l = l.to_owned();
                 if l_len < term_w {
-                    l.push(TNode::Bg(*Style::default().bg,
-                                     vec![TNode::Text(repeat(" ")
-                                                          .take(term_w - l_len)
-                                                          .collect())]));
+                    l.push(TNode::Bg(
+                        *Style::default().bg,
+                        vec![
+                            TNode::Text(repeat(" ").take(term_w - l_len).collect()),
+                        ],
+                    ));
                 }
                 l
             })
@@ -136,11 +174,12 @@ fn output(nodes: &[Node], players: &[Player]) {
 }
 
 fn prompt<'a, T>(s: T) -> String
-    where T: Into<Cow<'a, str>>
+where
+    T: Into<Cow<'a, str>>,
 {
     print!("{}: \x1b[K", s.into());
-    io::stdout().flush().unwrap();
+    stdout().flush().unwrap();
     let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
+    stdin().read_line(&mut input).unwrap();
     input.trim().to_owned()
 }
