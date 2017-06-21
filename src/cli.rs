@@ -94,8 +94,9 @@ pub enum Response {
 impl GameResponse {
     fn from_gamer<T: Gamer + Serialize>(gamer: &T) -> Result<GameResponse> {
         Ok(GameResponse {
-            state: serde_json::to_string(gamer)
-                .chain_err(|| "unable to encode game state")?,
+            state: serde_json::to_string(gamer).chain_err(
+                || "unable to encode game state",
+            )?,
             points: gamer.points(),
             status: gamer.status(),
         })
@@ -120,11 +121,11 @@ where
                 handle_status::<T>(&game)
             }
             Ok(Request::Play {
-                player,
-                command,
-                names,
-                game,
-            }) => {
+                   player,
+                   command,
+                   names,
+                   game,
+               }) => {
                 let mut game = serde_json::from_str(&game).unwrap();
                 handle_play::<T>(player, &command, &names, &mut game)
             }
@@ -213,10 +214,10 @@ where
 {
     match game.command(player, command, names) {
         Ok(CommandResponse {
-            logs,
-            can_undo,
-            remaining_input,
-        }) => {
+               logs,
+               can_undo,
+               remaining_input,
+           }) => {
             GameResponse::from_gamer(game)
                 .map(|gr| {
                     let (public_render, player_renders) = renders(game);

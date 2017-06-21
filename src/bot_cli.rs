@@ -15,6 +15,7 @@ pub struct Request {
     pub pub_state: String,
     pub players: Vec<String>,
     pub command_spec: CommandSpec,
+    pub game_id: Option<String>,
 }
 
 pub type Response = Vec<String>;
@@ -36,6 +37,7 @@ where
             &pub_state,
             &request.players,
             &request.command_spec,
+            request.game_id,
         )).unwrap()
     ).unwrap();
 }
