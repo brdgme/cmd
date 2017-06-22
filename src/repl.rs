@@ -162,9 +162,7 @@ fn output(nodes: &[Node], players: &[Player]) {
                 if l_len < term_w {
                     l.push(TNode::Bg(
                         *Style::default().bg,
-                        vec![
-                            TNode::Text(repeat(" ").take(term_w - l_len).collect()),
-                        ],
+                        vec![TNode::Text(repeat(" ").take(term_w - l_len).collect())],
                     ));
                 }
                 l
