@@ -10,6 +10,6 @@ brdgme-color = { git = "https://github.com/brdgme/color.git" }
 serde = "1.0.0"
 serde_derive = "1.0.0"
 serde_json = "1.0.0"
-chrono = { version = "0.3.1", features = ["serde"] }
+chrono = { version = "0.4.0", features = ["serde"] }
 error-chain = "0.10.0"
 term_size = "0.2.3"
