@@ -86,7 +86,7 @@ where
                             Node::Bold(vec![
                                 Node::Fg(
                                     brdgme_color::RED.into(),
-                                    vec![Node::text("No undos available")]
+                                    vec![Node::text("No undos available")],
                                 ),
                             ]),
                         ],
@@ -111,7 +111,7 @@ where
                                         Node::Bold(vec![
                                             Node::Fg(
                                                 brdgme_color::RED.into(),
-                                                vec![Node::text(e.to_string())]
+                                                vec![Node::text(e.to_string())],
                                             ),
                                         ]),
                                     ],
@@ -125,13 +125,19 @@ where
             }
         }
     }
-    match game.winners().as_slice() {
-        w if w.is_empty() => println!("The game is over, there are no winners"),
-        w => {
+    match game.placings().as_slice() {
+        placings if placings.is_empty() => println!("The game is over, there are no winners"),
+        placings => {
             println!(
-                "The game is over, won by {}",
-                w.iter()
-                    .filter_map(|w| players.get(*w).map(|p| p.name.to_string()))
+                "The game is over, placings: {}",
+                placings
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(player, placing)| {
+                        players
+                            .get(player)
+                            .map(|p| format!("{} ({})", p.name, placing))
+                    })
                     .collect::<Vec<String>>()
                     .join(", ")
             )

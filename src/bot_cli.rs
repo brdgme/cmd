@@ -38,6 +38,6 @@ where
             &request.players,
             &request.command_spec,
             request.game_id,
-        )).unwrap()
+        ),).unwrap()
     ).unwrap();
 }
