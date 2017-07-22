@@ -54,7 +54,7 @@ where
             return;
         }
         let current_player = turn[0];
-        output(&game.pub_state(Some(current_player)).render(), &players);
+        output(&game.player_state(current_player).render(), &players);
         println!();
         if let Some(spec) = game.command_spec(current_player) {
             output(&doc::render(&spec.doc()), &players);
@@ -144,7 +144,7 @@ where
         }
 
     }
-    output(&game.pub_state(None).render(), &players);
+    output(&game.pub_state().render(), &players);
 }
 
 fn output_logs(logs: Vec<Log>, players: &[Player]) {

@@ -12,7 +12,7 @@ use std::io::{Read, Write};
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Request {
     pub player: usize,
-    pub pub_state: String,
+    pub player_state: String,
     pub players: Vec<String>,
     pub command_spec: CommandSpec,
     pub game_id: Option<String>,
@@ -28,13 +28,13 @@ where
     O: Write,
 {
     let request = serde_json::from_reader::<_, Request>(input).unwrap();
-    let pub_state: G::PubState = serde_json::from_str(&request.pub_state).unwrap();
+    let player_state: G::PlayerState = serde_json::from_str(&request.player_state).unwrap();
     writeln!(
         output,
         "{}",
         serde_json::to_string(&bot.commands(
             request.player,
-            &pub_state,
+            &player_state,
             &request.players,
             &request.command_spec,
             request.game_id,
