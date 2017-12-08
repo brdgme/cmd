@@ -2,30 +2,38 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_json;
 use chrono::NaiveDateTime;
+use failure::Error;
 
-use brdgme_game::{Gamer, Log, Renderer, Status, CommandResponse};
-use brdgme_game::errors::{Error as GameError, ErrorKind as GameErrorKind};
+use brdgme_game::{CommandResponse, Gamer, Log, Renderer, Status};
+use brdgme_game::errors::GameError;
 use brdgme_game::command::Spec as CommandSpec;
 use brdgme_markup;
 
 use std::fmt::Debug;
 use std::io::{Read, Write};
 
-use errors::*;
-
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Request {
     PlayerCounts,
-    New { players: usize },
-    Status { game: String },
+    New {
+        players: usize,
+    },
+    Status {
+        game: String,
+    },
     Play {
         player: usize,
         command: String,
         names: Vec<String>,
         game: String,
     },
-    PubRender { game: String },
-    PlayerRender { player: usize, game: String },
+    PubRender {
+        game: String,
+    },
+    PlayerRender {
+        player: usize,
+        game: String,
+    },
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -73,7 +81,9 @@ pub struct PlayerRender {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Response {
-    PlayerCounts { player_counts: Vec<usize> },
+    PlayerCounts {
+        player_counts: Vec<usize>,
+    },
     New {
         game: GameResponse,
         logs: Vec<CliLog>,
@@ -93,17 +103,25 @@ pub enum Response {
         public_render: PubRender,
         player_renders: Vec<PlayerRender>,
     },
-    PubRender { render: PubRender },
-    PlayerRender { render: PlayerRender },
-    UserError { message: String },
-    SystemError { message: String },
+    PubRender {
+        render: PubRender,
+    },
+    PlayerRender {
+        render: PlayerRender,
+    },
+    UserError {
+        message: String,
+    },
+    SystemError {
+        message: String,
+    },
 }
 
 impl GameResponse {
-    fn from_gamer<T: Gamer + Serialize>(gamer: &T) -> Result<GameResponse> {
+    fn from_gamer<T: Gamer + Serialize>(gamer: &T) -> Result<GameResponse, Error> {
         Ok(GameResponse {
             state: serde_json::to_string(gamer)
-                .chain_err(|| "unable to encode game state")?,
+                .map_err(|e| format_err!("unable to encode game state: {}", e))?,
             points: gamer.points(),
             status: gamer.status(),
         })
@@ -186,28 +204,22 @@ where
     T: Gamer + Debug + Clone + Serialize + DeserializeOwned,
 {
     match T::new(players) {
-        Ok((game, logs)) => {
-            GameResponse::from_gamer(&game)
-                .map(|gs| {
-                    let (public_render, player_renders) = renders(&game);
-                    Response::New {
-                        game: gs,
-                        logs: CliLog::from_logs(&logs),
-                        public_render,
-                        player_renders,
-                    }
-                })
-                .unwrap_or_else(|e| {
-                    Response::SystemError {
-                        message: e.to_string(),
-                    }
-                })
-        }
-        Err(GameError(GameErrorKind::Internal(e), _)) => {
-            Response::SystemError {
-                message: e.to_string(),
-            }
-        }
+        Ok((game, logs)) => GameResponse::from_gamer(&game)
+            .map(|gs| {
+                let (public_render, player_renders) = renders(&game);
+                Response::New {
+                    game: gs,
+                    logs: CliLog::from_logs(&logs),
+                    public_render,
+                    player_renders,
+                }
+            })
+            .unwrap_or_else(|e| {
+                Response::SystemError {
+                    message: e.to_string(),
+                }
+            }),
+        Err(GameError::Internal { message }) => Response::SystemError { message },
         Err(e) => Response::UserError {
             message: e.to_string(),
         },
@@ -243,30 +255,24 @@ where
             logs,
             can_undo,
             remaining_input,
-        }) => {
-            GameResponse::from_gamer(game)
-                .map(|gr| {
-                    let (public_render, player_renders) = renders(game);
-                    Response::Play {
-                        game: gr,
-                        logs: CliLog::from_logs(&logs),
-                        can_undo,
-                        remaining_input,
-                        public_render,
-                        player_renders,
-                    }
-                })
-                .unwrap_or_else(|e| {
-                    Response::SystemError {
-                        message: e.to_string(),
-                    }
-                })
-        }
-        Err(GameError(GameErrorKind::Internal(e), _)) => {
-            Response::SystemError {
-                message: e.to_string(),
-            }
-        }
+        }) => GameResponse::from_gamer(game)
+            .map(|gr| {
+                let (public_render, player_renders) = renders(game);
+                Response::Play {
+                    game: gr,
+                    logs: CliLog::from_logs(&logs),
+                    can_undo,
+                    remaining_input,
+                    public_render,
+                    player_renders,
+                }
+            })
+            .unwrap_or_else(|e| {
+                Response::SystemError {
+                    message: e.to_string(),
+                }
+            }),
+        Err(GameError::Internal { message }) => Response::SystemError { message },
         Err(e) => Response::UserError {
             message: e.to_string(),
         },

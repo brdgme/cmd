@@ -12,11 +12,11 @@ use std::fmt::Debug;
 use std::borrow::Cow;
 use std::iter::repeat;
 
-use brdgme_game::{Gamer, Renderer, Log, CommandResponse};
+use brdgme_game::{CommandResponse, Gamer, Log, Renderer};
 use brdgme_game::command::doc;
-use brdgme_game::errors::{Error as GameError, ErrorKind as GameErrorKind};
-use brdgme_markup::{ansi, transform, Node, TNode, to_lines, from_lines, Player};
-use brdgme_color::{Style, player_color};
+use brdgme_game::errors::GameError;
+use brdgme_markup::{ansi, from_lines, to_lines, transform, Node, Player, TNode};
+use brdgme_color::{player_color, Style};
 
 pub fn repl<T>()
 where
@@ -95,54 +95,46 @@ where
                 }
             }
             ":quit" | ":q" => return,
-            _ => {
-                match game.command(current_player, &input, &player_names) {
-                    Ok(CommandResponse { logs, .. }) => {
-                        undo_stack.push(previous);
-                        output_logs(logs, &players);
-                    }
-                    Err(e) => {
-                        match e {
-                            GameError(GameErrorKind::Internal(..), ..) => panic!(e),
-                            _ => {
-                                game = previous;
-                                output(
-                                    &[
-                                        Node::Bold(vec![
-                                            Node::Fg(
-                                                brdgme_color::RED.into(),
-                                                vec![Node::text(e.to_string())],
-                                            ),
-                                        ]),
-                                    ],
-                                    &players,
-                                );
-
-                            }
-                        }
-                    }
+            _ => match game.command(current_player, &input, &player_names) {
+                Ok(CommandResponse { logs, .. }) => {
+                    undo_stack.push(previous);
+                    output_logs(logs, &players);
                 }
-            }
+                Err(e) => match e {
+                    GameError::Internal { .. } => panic!(e),
+                    _ => {
+                        game = previous;
+                        output(
+                            &[
+                                Node::Bold(vec![
+                                    Node::Fg(
+                                        brdgme_color::RED.into(),
+                                        vec![Node::text(e.to_string())],
+                                    ),
+                                ]),
+                            ],
+                            &players,
+                        );
+                    }
+                },
+            },
         }
     }
     match game.placings().as_slice() {
         placings if placings.is_empty() => println!("The game is over, there are no winners"),
-        placings => {
-            println!(
-                "The game is over, placings: {}",
-                placings
-                    .iter()
-                    .enumerate()
-                    .filter_map(|(player, placing)| {
-                        players
-                            .get(player)
-                            .map(|p| format!("{} ({})", p.name, placing))
-                    })
-                    .collect::<Vec<String>>()
-                    .join(", ")
-            )
-        }
-
+        placings => println!(
+            "The game is over, placings: {}",
+            placings
+                .iter()
+                .enumerate()
+                .filter_map(|(player, placing)| {
+                    players
+                        .get(player)
+                        .map(|p| format!("{} ({})", p.name, placing))
+                })
+                .collect::<Vec<String>>()
+                .join(", ")
+        ),
     }
     output(&game.pub_state().render(), &players);
 }
