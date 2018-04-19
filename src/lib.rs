@@ -16,5 +16,7 @@ extern crate brdgme_markup;
 mod repl;
 pub use repl::repl;
 
-pub mod cli;
+pub mod api;
 pub mod bot_cli;
+pub mod cli;
+pub mod requester;
