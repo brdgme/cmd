@@ -53,6 +53,7 @@ where
             public_render,
             player_renders,
         } => (game, logs, public_render, player_renders),
+        Response::UserError { message } | Response::SystemError { message } => panic!(message),
         _ => panic!("wrong reponse"),
     };
     output_logs(logs, &players);
