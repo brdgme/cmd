@@ -23,6 +23,7 @@ impl Requester for LocalRequester {
         let mut cmd = Command::new(&self.path)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
             .spawn()?;
 
         {
@@ -37,12 +38,13 @@ impl Requester for LocalRequester {
 
         let output = cmd.wait_with_output()?;
 
-        match serde_json::from_slice(&output.stdout) {
-            Ok(response) => Ok(response),
-            Err(e) => {
-                println!("{}", String::from_utf8(output.stdout).unwrap());
-                panic!(e.to_string());
-            }
-        }
+        serde_json::from_slice(&output.stdout).map_err(|e| {
+            format_err!(
+                "failed to parse JSON: {}\n\nChild process stderr:\n{}\n\nChild process stdout:\n{}\n\n",
+                e,
+                String::from_utf8_lossy(&output.stderr),
+                String::from_utf8_lossy(&output.stdout)
+            )
+        })
     }
 }

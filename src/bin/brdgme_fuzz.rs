@@ -16,24 +16,28 @@ use brdgme_cmd::requester;
 use brdgme_game::command;
 
 use std::env;
-use std::io::{self, Read};
 use std::sync::mpsc::{channel, Sender, TryRecvError};
 use std::thread;
+use std::time::{Duration, SystemTime};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
     let mut exit_txs: Vec<Sender<()>> = vec![];
+    let (step_tx, step_rx) = channel();
 
-    for thr in 0..num_cpus::get() {
-        let (tx, rx) = channel();
+    for _ in 0..num_cpus::get() {
+        let (exit_tx, exit_rx) = channel();
         let args = args.clone();
-        exit_txs.push(tx);
+        let step_tx = step_tx.clone();
+        exit_txs.push(exit_tx);
         thread::spawn(move || {
             let client = requester::parse_args(&args).unwrap();
             let mut fuzzer = Fuzzer::new(Box::new(client)).expect("expected to create fuzzer");
             loop {
-                println!("{} {:?}", thr, fuzzer.next());
-                match rx.try_recv() {
+                step_tx
+                    .send(fuzzer.next().expect("failed to get something from fuzzer"))
+                    .expect("failed to send fuzz step");
+                match exit_rx.try_recv() {
                     Ok(_) | Err(TryRecvError::Disconnected) => break,
                     Err(TryRecvError::Empty) => {}
                 }
@@ -41,18 +45,61 @@ fn main() {
         });
     }
 
-    let mut buf = [0; 1];
-    let stdin = io::stdin();
-    let mut char_rd = stdin.lock();
+    let mut tally = FuzzTally::default();
+    let mut last_output_at = SystemTime::now();
+    let output_interval = Duration::from_secs(1);
+
     loop {
-        char_rd.read_exact(&mut buf).unwrap();
-        if buf[0] == b'q' {
-            break;
+        let now = SystemTime::now();
+        if now.duration_since(last_output_at)
+            .expect("failed to get duration") > output_interval
+        {
+            eprintln!("{}", tally.render());
+            last_output_at = now;
+        }
+        match step_rx.recv().expect("failed to get step") {
+            FuzzStep::Created => tally.started += 1,
+            FuzzStep::Finished => tally.finished += 1,
+            FuzzStep::CommandOk => tally.commands += 1,
+            FuzzStep::UserError => {
+                tally.commands += 1;
+                tally.invalid_input += 1;
+            }
+            FuzzStep::Error {
+                game,
+                command,
+                error,
+            } => {
+                println!(
+                    "\nError detected: {}\n\nCommand: {}\n\nGame: {:?}",
+                    error,
+                    command.unwrap_or("none".to_string()),
+                    game
+                );
+                break;
+            }
         }
     }
 
     for tx in exit_txs {
         tx.send(()).unwrap();
+    }
+}
+
+#[derive(Default)]
+struct FuzzTally {
+    started: usize,
+    finished: usize,
+    commands: usize,
+    invalid_input: usize,
+}
+
+impl FuzzTally {
+    fn render(&self) -> String {
+        format!(
+            "Games started: {}   Games finished: {}   Commands: {}   Commands failed: {}",
+            self.started, self.finished, self.commands, self.invalid_input
+        )
     }
 }
 
