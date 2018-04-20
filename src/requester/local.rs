@@ -2,7 +2,7 @@ use failure::Error;
 use serde_json;
 
 use std::ffi::OsString;
-use std::io::{BufReader, BufWriter, Read, Write};
+use std::io::{BufWriter, Write};
 use std::process::{Command, Stdio};
 
 use api::{Request, Response};
@@ -20,25 +20,27 @@ impl LocalRequester {
 
 impl Requester for LocalRequester {
     fn request(&mut self, req: &Request) -> Result<Response, Error> {
-        let cmd = Command::new(&self.path)
+        let mut cmd = Command::new(&self.path)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .spawn()?;
 
-        let mut wr = cmd.stdin.unwrap();
-        let mut bufwr = BufWriter::new(&mut wr);
+        {
+            let mut wr = cmd.stdin
+                .as_mut()
+                .ok_or(format_err!("failed to get stdin"))?;
+            let mut bufwr = BufWriter::new(&mut wr);
 
-        let mut rd = cmd.stdout.unwrap();
-        let mut bufrd = BufReader::new(&mut rd);
+            bufwr.write_all(serde_json::to_string(req)?.as_bytes())?;
+            bufwr.flush()?;
+        }
 
-        bufwr.write_all(serde_json::to_string(req)?.as_bytes())?;
-        bufwr.flush()?;
-        let mut output: Vec<u8> = vec![];
-        bufrd.read_to_end(&mut output)?;
-        match serde_json::from_slice(&output) {
+        let output = cmd.wait_with_output()?;
+
+        match serde_json::from_slice(&output.stdout) {
             Ok(response) => Ok(response),
             Err(e) => {
-                println!("{}", String::from_utf8(output).unwrap());
+                println!("{}", String::from_utf8(output.stdout).unwrap());
                 panic!(e.to_string());
             }
         }

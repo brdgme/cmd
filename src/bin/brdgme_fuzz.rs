@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 #[macro_use]
 extern crate failure;
+extern crate num_cpus;
 extern crate rand;
 
 extern crate brdgme_cmd;
@@ -15,13 +16,43 @@ use brdgme_cmd::requester;
 use brdgme_game::command;
 
 use std::env;
+use std::io::{self, Read};
+use std::sync::mpsc::{channel, Sender, TryRecvError};
+use std::thread;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let client = requester::parse_args(&args).unwrap();
-    let mut fuzzer = Fuzzer::new(Box::new(client)).expect("expected to create fuzzer");
-    for i in 0..1000 {
-        println!("{} {:?}", i, fuzzer.next());
+    let mut exit_txs: Vec<Sender<()>> = vec![];
+
+    for thr in 0..num_cpus::get() {
+        let (tx, rx) = channel();
+        let args = args.clone();
+        exit_txs.push(tx);
+        thread::spawn(move || {
+            let client = requester::parse_args(&args).unwrap();
+            let mut fuzzer = Fuzzer::new(Box::new(client)).expect("expected to create fuzzer");
+            loop {
+                println!("{} {:?}", thr, fuzzer.next());
+                match rx.try_recv() {
+                    Ok(_) | Err(TryRecvError::Disconnected) => break,
+                    Err(TryRecvError::Empty) => {}
+                }
+            }
+        });
+    }
+
+    let mut buf = [0; 1];
+    let stdin = io::stdin();
+    let mut char_rd = stdin.lock();
+    loop {
+        char_rd.read_exact(&mut buf).unwrap();
+        if buf[0] == b'q' {
+            break;
+        }
+    }
+
+    for tx in exit_txs {
+        tx.send(()).unwrap();
     }
 }
 
