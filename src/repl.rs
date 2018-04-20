@@ -56,11 +56,13 @@ where
         Response::UserError { message } | Response::SystemError { message } => panic!(message),
         _ => panic!("wrong reponse"),
     };
+    output_nl();
     output_logs(logs, &players);
     let mut undo_stack: Vec<GameResponse> = vec![game.clone()];
     loop {
         match game.status.clone() {
             Status::Finished { placings, .. } => {
+                output_nl();
                 match placings.as_slice() {
                     placings if placings.is_empty() => {
                         println!("The game is over, there are no winners")
@@ -77,10 +79,12 @@ where
                             .join(", ")
                     ),
                 }
+                output_nl();
                 output_markup(&public_render.render, &players);
                 return;
             }
             Status::Active { ref whose_turn, .. } => {
+                output_nl();
                 if whose_turn.is_empty() {
                     output_nodes(&[Node::text("no player's turn, exiting")], &players);
                     return;
@@ -89,6 +93,7 @@ where
                 output_markup(&player_renders[current_player].render, &players);
                 println!();
                 if let Some(ref spec) = player_renders[current_player].command_spec {
+                    output_nl();
                     output_nodes(&doc::render(&spec.doc()), &players);
                 }
                 println!();
@@ -141,6 +146,7 @@ where
                             ..
                         } => {
                             if remaining_input.trim() != "" {
+                                output_nl();
                                 output_error(format!("Unexpected: '{}'", remaining_input));
                                 continue;
                             }
@@ -148,10 +154,17 @@ where
                             game = new_game;
                             public_render = new_public_render;
                             player_renders = new_player_renders;
+                            output_nl();
                             output_logs(logs, &players);
                         }
-                        Response::SystemError { message } => panic!(message),
-                        Response::UserError { message } => output_error(message),
+                        Response::SystemError { message } => {
+                            output_nl();
+                            panic!(message);
+                        }
+                        Response::UserError { message } => {
+                            output_nl();
+                            output_error(message);
+                        }
                         _ => panic!("unexpected response"),
                     },
                 }
@@ -203,6 +216,10 @@ fn output_error<I: Into<String>>(s: I) {
 
 fn output_markup(markup: &str, players: &[Player]) {
     output_nodes(&brdgme_markup::from_string(markup).unwrap().0, players)
+}
+
+fn output_nl() {
+    output_markup("", &[]);
 }
 
 fn prompt<'a, T>(s: T) -> String
