@@ -3,13 +3,10 @@ extern crate brdgme_cmd;
 use std::env;
 
 use brdgme_cmd::repl;
-use brdgme_cmd::requester::local::LocalRequester;
+use brdgme_cmd::requester;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let mut client: LocalRequester = match args[1].as_ref() {
-        "local" => LocalRequester::new(&args[2]),
-        _ => panic!("expected one of 'local'"),
-    };
+    let mut client = requester::parse_args(&args).unwrap();
     repl(&mut client);
 }
