@@ -4,7 +4,6 @@ version = "0.1.0"
 authors = ["Michael Alexander <beefsack@gmail.com>"]
 
 [dependencies]
-brdgme-rand-bot = { git = "https://github.com/brdgme/rand-bot.git" }
 brdgme-markup = { git = "https://github.com/brdgme/markup.git" }
 brdgme-game = { git = "https://github.com/brdgme/game.git" }
 brdgme-color = { git = "https://github.com/brdgme/color.git" }
@@ -14,5 +13,3 @@ serde_json = "1.0.0"
 chrono = { version = "0.4.0", features = ["serde"] }
 failure = "0.1.1"
 term_size = "0.2.3"
-rand = "0.4.2"
-num_cpus = "1.8.0"
