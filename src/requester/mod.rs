@@ -1,6 +1,6 @@
-use failure::Error;
+use failure::{bail, Error};
 
-use api::{Request, Response};
+use crate::api::{Request, Response};
 
 pub mod gamer;
 pub mod local;

@@ -1,5 +1,6 @@
 use serde::Serialize;
 use serde::de::DeserializeOwned;
+use serde_derive::{Serialize, Deserialize};
 use serde_json;
 
 use brdgme_game::Gamer;

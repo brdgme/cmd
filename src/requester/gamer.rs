@@ -10,8 +10,8 @@ use brdgme_game::errors::GameError;
 use brdgme_game::{CommandResponse, Gamer, Renderer};
 use brdgme_markup;
 
-use api::{CliLog, GameResponse, PlayerRender, PubRender, Request, Response};
-use requester::Requester;
+use crate::api::{CliLog, GameResponse, PlayerRender, PubRender, Request, Response};
+use crate::requester::Requester;
 
 pub struct GameRequester<G: Gamer + Debug + Clone + Serialize + DeserializeOwned> {
     gamer: PhantomData<G>,

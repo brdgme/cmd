@@ -1,12 +1,12 @@
-use failure::Error;
+use failure::{Error, format_err};
 use serde_json;
 
 use std::ffi::OsString;
 use std::io::{BufWriter, Write};
 use std::process::{Command, Stdio};
 
-use api::{Request, Response};
-use requester::Requester;
+use crate::api::{Request, Response};
+use crate::requester::Requester;
 
 pub struct LocalRequester {
     path: OsString,

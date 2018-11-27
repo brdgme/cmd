@@ -2,8 +2,8 @@ use serde_json;
 
 use std::io::{Read, Write};
 
-use api::{Request, Response};
-use requester::Requester;
+use crate::api::{Request, Response};
+use crate::requester::Requester;
 
 pub fn cli<R: Requester, I: Read, O: Write>(requester: &mut R, input: I, output: &mut O) {
     writeln!(

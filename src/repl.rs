@@ -14,8 +14,8 @@ use brdgme_game::command::doc;
 use brdgme_game::Status;
 use brdgme_markup::{self, ansi, from_lines, to_lines, transform, Node, Player, TNode};
 
-use api::{CliLog, GameResponse, Request, Response};
-use requester::Requester;
+use crate::api::{CliLog, GameResponse, Request, Response};
+use crate::requester::Requester;
 
 pub fn repl<T>(client: &mut T)
 where
